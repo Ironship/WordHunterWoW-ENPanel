@@ -1,0 +1,9 @@
+/Tools/keys.env
+/Data/cache/
+/Data/QuestV2.csv
+/release/
+/curseforge/
+*.zip
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,40 @@
+## Interface: 120100
+## Title: QuestWordHunter - English Quest Panel
+## Notes: Optional English quest text panel. Requires WordHunterWoW.
+## Author: Ironship
+## Version: 1.0.0
+## Dependencies: WordHunterWoW
+## SavedVariables: WordHunterWoWENPanelDB
+
+Data/QuestEN_000.lua
+Data/QuestEN_001.lua
+Data/QuestEN_002.lua
+Data/QuestEN_003.lua
+Data/QuestEN_004.lua
+Data/QuestEN_005.lua
+Data/QuestEN_006.lua
+Data/QuestEN_007.lua
+Data/QuestEN_008.lua
+Data/QuestEN_009.lua
+Data/QuestEN_010.lua
+Data/QuestEN_011.lua
+Data/QuestEN_012.lua
+Data/QuestEN_013.lua
+Data/QuestEN_014.lua
+Data/QuestEN_015.lua
+Data/QuestEN_016.lua
+Data/QuestEN_017.lua
+Data/QuestEN_018.lua
+Data/QuestEN_019.lua
+Data/QuestEN_020.lua
+Data/QuestEN_021.lua
+Data/QuestEN_022.lua
+Data/QuestEN_023.lua
+Data/QuestEN_024.lua
+Data/QuestEN_025.lua
+Data/QuestEN_026.lua
+Data/QuestEN_027.lua
+Data/QuestEN_028.lua
+Data/QuestEN_029.lua
+Data/QuestEN_030.lua
+ENPanel.lua
