@@ -1,0 +1,211 @@
+local addonName = ...
+
+local frame
+local questInfoHooked
+local questMapHooked
+local hideWatched = {}
+local db
+
+local function layoutContent()
+  if not frame then return end
+  local w = frame:GetWidth()
+  frame.content:SetWidth(math.max(200, w - 52))
+  if frame:IsShown() then
+    frame.content:SetHeight(math.max(1, frame.text:GetStringHeight() + 12))
+    frame.scroll:UpdateScrollChildRect()
+  end
+end
+
+local function applyTheme(target)
+  local Addon = WordHunterWoW_Addon
+  if Addon and Addon.ApplyBackground then
+    Addon.ApplyBackground(target)
+  else
+    target:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1, insets = { left = 1, right = 1, top = 1, bottom = 1 } })
+    target:SetBackdropColor(0.08, 0.09, 0.13, 0.97)
+    target:SetBackdropBorderColor(0.22, 0.24, 0.34, 0.95)
+  end
+end
+
+local function questText(questId)
+  local entry = WordHunterWoW_QuestEN and WordHunterWoW_QuestEN[tonumber(questId)]
+  if not entry then return nil end
+  local title = entry.title or ""
+  local description = entry.description or ""
+  local objectives = entry.objectives or ""
+  local body = description
+  if objectives ~= "" then body = body .. (body ~= "" and "\n\n" or "") .. objectives end
+  return title, body
+end
+
+local function questFrameOpen()
+  return QuestFrame and QuestFrame:IsShown()
+end
+
+local function questLogOpen()
+  local details = QuestMapFrame and QuestMapFrame.DetailsFrame
+  if details and details:IsShown() then return true end
+  return WorldMapFrame and WorldMapFrame:IsShown() and QuestMapFrame and QuestMapFrame:IsShown()
+end
+
+local function currentQuestId()
+  if questFrameOpen() then
+    local id = GetQuestID and GetQuestID()
+    if id and id > 0 then return id end
+  end
+  local id = QuestMapFrame_GetDetailQuestID and QuestMapFrame_GetDetailQuestID()
+  if id and id > 0 then return id end
+  id = C_QuestLog and C_QuestLog.GetSelectedQuest and C_QuestLog.GetSelectedQuest()
+  if id and id > 0 then return id end
+  id = GetQuestID and GetQuestID()
+  if id and id > 0 then return id end
+  return nil
+end
+
+local function hideIfOrphaned()
+  if not frame or not frame:IsShown() then return end
+  if not questFrameOpen() and not questLogOpen() then
+    frame:Hide()
+  end
+end
+
+local function watchHide(target)
+  if not target or hideWatched[target] then return end
+  hideWatched[target] = true
+  target:HookScript("OnHide", function()
+    C_Timer.After(0, hideIfOrphaned)
+  end)
+end
+
+local function ensureFrame()
+  if frame then return frame end
+  frame = CreateFrame("Frame", "WordHunterWoWENPanelFrame", UIParent, "BackdropTemplate")
+  frame:SetSize(420, 480)
+  frame:SetFrameStrata("FULLSCREEN_DIALOG")
+  frame:SetClampedToScreen(true)
+  frame:SetMovable(true)
+  frame:EnableMouse(true)
+  frame:RegisterForDrag("LeftButton")
+  frame:SetScript("OnDragStart", frame.StartMoving)
+  frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+  applyTheme(frame)
+  if WordHunterWoW_Addon then WordHunterWoW_Addon.enPanel = frame end
+  if WordHunterWoW_Addon and WordHunterWoW_Addon.MakeResizable then
+    WordHunterWoW_Addon.MakeResizable(frame, "enPanel", 280, 220, 700, 800)
+  else
+    frame:SetResizable(true)
+    if frame.SetResizeBounds then frame:SetResizeBounds(280, 220, 700, 800) end
+    local handle = CreateFrame("Button", nil, frame)
+    handle:SetSize(16, 16)
+    handle:SetPoint("BOTTOMRIGHT", -4, 4)
+    handle:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+    handle:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+    handle:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
+    handle:SetScript("OnMouseDown", function() frame:StartSizing("BOTTOMRIGHT") end)
+    handle:SetScript("OnMouseUp", function() frame:StopMovingOrSizing() end)
+    frame.resizeHandle = handle
+  end
+  if db and db.w and db.h then frame:SetSize(db.w, db.h) end
+  frame:HookScript("OnSizeChanged", function(self)
+    if db then
+      db.w, db.h = self:GetWidth(), self:GetHeight()
+    end
+    layoutContent()
+  end)
+  frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+  frame.title:SetPoint("TOPLEFT", 16, -14)
+  frame.title:SetPoint("TOPRIGHT", -40, -14)
+  frame.title:SetJustifyH("LEFT")
+  frame.title:SetMaxLines(1)
+  local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
+  close:SetPoint("TOPRIGHT", -2, -2)
+  frame.scroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
+  frame.scroll:SetPoint("TOPLEFT", 16, -44)
+  frame.scroll:SetPoint("BOTTOMRIGHT", -34, 16)
+  frame.content = CreateFrame("Frame", nil, frame.scroll)
+  frame.content:SetSize(368, 1)
+  frame.scroll:SetScrollChild(frame.content)
+  frame.text = frame.content:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+  frame.text:SetPoint("TOPLEFT", 0, 0)
+  frame.text:SetPoint("TOPRIGHT", 0, 0)
+  frame.text:SetJustifyH("LEFT")
+  frame.text:SetJustifyV("TOP")
+  frame.text:SetWordWrap(true)
+  frame:Hide()
+  return frame
+end
+
+local function showQuest(questId)
+  local Addon = WordHunterWoW_Addon
+  if Addon and Addon.GetIntegratedLayout and Addon.GetIntegratedLayout() then
+    if frame then frame:Hide() end
+    return
+  end
+  questId = questId or currentQuestId()
+  if not questId or questId == 0 then return end
+  local title, body = questText(questId)
+  local f = ensureFrame()
+  applyTheme(f)
+  f.title:SetText(title or ("English quest #" .. questId))
+  f.text:SetText(body or "English text is not available for this quest.")
+  layoutContent()
+  f:Show()
+  f:Raise()
+end
+
+local function hookQuestUi()
+  if not questInfoHooked and type(QuestInfo_ShowDescriptionText) == "function" then
+    questInfoHooked = true
+    hooksecurefunc("QuestInfo_ShowDescriptionText", function()
+      C_Timer.After(0, function() showQuest() end)
+    end)
+  end
+  if not questMapHooked and type(QuestMapFrame_ShowQuestDetails) == "function" then
+    questMapHooked = true
+    hooksecurefunc("QuestMapFrame_ShowQuestDetails", function()
+      C_Timer.After(0, function()
+        local questId = QuestMapFrame_GetDetailQuestID and QuestMapFrame_GetDetailQuestID()
+        if not questId or questId == 0 then questId = C_QuestLog.GetSelectedQuest() end
+        showQuest(questId)
+      end)
+    end)
+  end
+  watchHide(QuestFrame)
+  watchHide(WorldMapFrame)
+  watchHide(QuestMapFrame)
+  if QuestMapFrame and QuestMapFrame.DetailsFrame then watchHide(QuestMapFrame.DetailsFrame) end
+end
+
+local events = CreateFrame("Frame")
+events:RegisterEvent("ADDON_LOADED")
+events:RegisterEvent("QUEST_DETAIL")
+events:RegisterEvent("QUEST_PROGRESS")
+events:RegisterEvent("QUEST_COMPLETE")
+events:RegisterEvent("QUEST_FINISHED")
+events:SetScript("OnEvent", function(_, event, loaded)
+  if event == "ADDON_LOADED" then
+    if loaded == addonName then
+      WordHunterWoWENPanelDB = WordHunterWoWENPanelDB or {}
+      db = WordHunterWoWENPanelDB
+      hookQuestUi()
+      local Addon = WordHunterWoW_Addon
+      if Addon then
+        Addon.OnIntegratedLayoutChanged = function(integrated)
+          if integrated then
+            if frame then frame:Hide() end
+          else
+            showQuest()
+          end
+        end
+        if Addon.ApplyIntegratedLayout then Addon.ApplyIntegratedLayout() end
+      end
+    elseif loaded == "Blizzard_WorldMap" or loaded == "Blizzard_UIPanels_Game" then
+      hookQuestUi()
+    end
+  elseif event == "QUEST_FINISHED" then
+    if frame then frame:Hide() end
+  else
+    hookQuestUi()
+    C_Timer.After(0, function() showQuest() end)
+  end
+end)
