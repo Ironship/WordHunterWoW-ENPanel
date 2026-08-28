@@ -8,6 +8,10 @@ This optional addon sits next to [QuestWordHunter](https://github.com/Ironship/W
 
 About 30,000 quests from Blizzard's Game Data API.
 
+## What it cannot show you
+
+Blizzard's quest API publishes a quest's title and its opening text and nothing else — no progress line, no hand-in line. So when an NPC is showing you one of those, there is no English to pair with it. Rather than passing the opening text off as a translation of what you are reading, the panel says so in red above it.
+
 ## What you need
 
 - Retail 12.1 (`Interface 120100`)
