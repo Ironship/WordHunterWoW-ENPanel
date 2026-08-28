@@ -152,7 +152,14 @@ local function showQuest(questId)
   if body and lastQuest and lastQuest.passage and lastQuest.passage ~= "offer" then
     local caveat = (Addon.LABELS and Addon.LABELS.enOfferOnly)
       or "[Blizzard publishes no English text for this part of a quest. Showing the quest's opening text instead.]"
-    body = caveat .. (body ~= "" and "\n\n" or "") .. body
+    -- Red, and on its own line: it is a warning about the text underneath, not a
+    -- part of it. Fall back to a fixed red if the base addon is an older version
+    -- that has no caveat colour.
+    local color = Addon.COLORS and Addon.COLORS.caveat
+    local hex = color
+      and string.format("%02x%02x%02x", color[1] * 255, color[2] * 255, color[3] * 255)
+      or "ff6b6b"
+    body = "|cff" .. hex .. caveat .. "|r" .. (body ~= "" and "\n\n" or "") .. body
   end
   local f = ensureFrame()
   applyTheme(f)
