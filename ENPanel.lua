@@ -144,6 +144,16 @@ local function showQuest(questId)
   questId = questId or currentQuestId()
   if not questId or questId == 0 then return end
   local title, body = questText(questId)
+  -- The shipped data holds only the quest's opening text and objectives, because
+  -- that is all Blizzard's quest API publishes. When the NPC is showing the
+  -- progress or hand-in lines instead, say so rather than passing off the opening
+  -- text as a translation of what the player is reading.
+  local lastQuest = Addon and Addon.lastQuest
+  if body and lastQuest and lastQuest.passage and lastQuest.passage ~= "offer" then
+    local caveat = (Addon.LABELS and Addon.LABELS.enOfferOnly)
+      or "[Blizzard publishes no English text for this part of a quest. Showing the quest's opening text instead.]"
+    body = caveat .. (body ~= "" and "\n\n" or "") .. body
+  end
   local f = ensureFrame()
   applyTheme(f)
   f.title:SetText(title or ("English quest #" .. questId))
