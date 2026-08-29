@@ -83,14 +83,28 @@ end
 
 local LABEL = "English"
 
+-- Retail hands back "secret" values from its own frames -- a tooltip's text, a
+-- unit's guid. Reading or comparing one raises an error and taints this addon's
+-- execution, after which nothing it does works at all. Everything that comes out
+-- of the game goes through here first.
+local function usable(value)
+  if value == nil then return false end
+  if canaccessvalue and not canaccessvalue(value) then return false end
+  if issecretvalue and issecretvalue(value) then return false end
+  return true
+end
+ENPanelNames.Usable = usable
+
 local function appendName(tooltip, kind, id)
   if not enabled() or clientIsEnglish() then return end
   local english = ENPanelNames.Get(kind, id)
   if not english or english == "" then return end
   -- Adding the line when the tooltip already shows that exact text would just
-  -- repeat the title back at the player.
+  -- repeat the title back at the player. The title is a secret value on some
+  -- tooltips, and then there is no way to tell -- so assume it does not match.
   local first = _G[tooltip:GetName() .. "TextLeft1"]
-  local repeated = first and first.GetText and first:GetText() == english
+  local current = first and first.GetText and first:GetText()
+  local repeated = usable(current) and current == english
   local description = ENPanelNames.GetDescription(kind, id)
   if repeated and not description then return end
   -- A blank line first. Without it the English runs straight on from the German
@@ -129,8 +143,11 @@ local function hookTooltips()
         appendName(tooltip, "spell", data.id)
       elseif data.type == Enum.TooltipDataType.Unit then
         -- data.id is a unit token here, not a creature id; the guid carries it.
+        -- The guid is often secret, and splitting one would taint us.
         local guid = UnitGUID and UnitGUID(data.id)
-        appendName(tooltip, "npc", npcIdFromGuid(guid))
+        if usable(guid) then
+          appendName(tooltip, "npc", npcIdFromGuid(guid))
+        end
       end
     end)
     return true

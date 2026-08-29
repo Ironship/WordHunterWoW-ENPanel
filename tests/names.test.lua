@@ -136,5 +136,38 @@ reset(GameTooltip)
 hook(GameTooltip, { type = 2, id = 2050 })
 assert(#GameTooltip.lines == 2, "empty description must not add a line")
 
+-- Retail returns "secret" values from its own frames. Reading or comparing one
+-- raises an error and taints the addon, after which nothing it does works at
+-- all -- which is what actually broke the panel in the game. Pure Lua cannot
+-- reproduce the engine's error, so this asserts the guard is in the path: the
+-- addon must ask whether a value is usable before it touches it.
+local SECRET = setmetatable({}, {__tostring = function() return "<secret>" end})
+local asked = {}
+canaccessvalue = function(v) if rawequal(v, SECRET) then asked.title = true return false end return true end
+issecretvalue = function(v) return rawequal(v, SECRET) end
+
+_G["GameTooltipTextLeft1"] = { GetText = function() return SECRET end }
+reset(GameTooltip)
+local ok, err = pcall(hook, GameTooltip, { type = 2, id = 133 })
+assert(ok, "a secret tooltip title must not raise: " .. tostring(err))
+assert(asked.title, "the tooltip title was used without checking whether it is secret")
+assert(#GameTooltip.lines > 0, "a secret title must not stop the English line being added")
+print("  secret tooltip title guarded")
+
+-- the same for a unit guid, which must never reach strsplit
+asked = {}
+canaccessvalue = function(v) if rawequal(v, SECRET) then asked.guid = true return false end return true end
+UnitGUID = function() return SECRET end
+reset(GameTooltip)
+ok, err = pcall(hook, GameTooltip, { type = 3, id = "player" })
+assert(ok, "a secret guid must not raise: " .. tostring(err))
+assert(asked.guid, "the unit guid was used without checking whether it is secret")
+assert(#GameTooltip.lines == 0, "a secret guid should add nothing")
+print("  secret unit guid guarded")
+
+UnitGUID = function(unit) return guids[unit] end
+issecretvalue, canaccessvalue = nil, nil
+_G["GameTooltipTextLeft1"] = { GetText = function() return "Feuerball" end }
+
 local c = N.Counts()
 print(string.format("all assertions passed  (spell=%d npc=%d item=%d)", c.spell, c.npc, c.item or 0))
