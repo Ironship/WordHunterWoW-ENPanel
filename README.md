@@ -20,10 +20,10 @@ Blizzard's quest API publishes a quest's title and its opening text and nothing 
 ## Rebuild (maintainers)
 
 1. Blizzard keys in `Tools/keys.env` (`BLIZZARD_CLIENT_ID`, `BLIZZARD_CLIENT_SECRET`). Never commit this file.
-2. Wago QuestV2 CSV → `Data/QuestV2.csv` (gitignored).
+2. A quest id list at `Data/quest_ids.csv` — one `ID` column. Gitignored.
 3. `python Tools/fetch_quests.py`
 4. `python Tools/build_quest_lua.py`
 
-Do not commit `Data/cache/` or `QuestV2.csv`. Commit generated `Data/QuestEN_*.lua`.
+Do not commit `Data/cache/` or `quest_ids.csv`. Commit generated `Data/QuestEN_*.lua`.
 
 All rights reserved.

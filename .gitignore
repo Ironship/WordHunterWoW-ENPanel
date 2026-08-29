@@ -1,6 +1,6 @@
 /Tools/keys.env
 /Data/cache/
-/Data/QuestV2.csv
+/Data/quest_ids.csv
 /release/
 /curseforge/
 *.zip

@@ -20,7 +20,7 @@ def token():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--locale", default="en_US")
-    parser.add_argument("--csv", default=str(ROOT / "Data" / "QuestV2.csv"))
+    parser.add_argument("--csv", default=str(ROOT / "Data" / "quest_ids.csv"))
     parser.add_argument("--cache", default=str(ROOT / "Data" / "cache" / "quests_enUS.jsonl"))
     parser.add_argument("--failed", default=str(ROOT / "Data" / "cache" / "failed_enUS.txt"))
     parser.add_argument("--workers", type=int, default=6)
