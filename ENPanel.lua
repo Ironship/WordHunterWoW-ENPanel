@@ -81,21 +81,58 @@ local function watchHide(target)
   end)
 end
 
--- The player drags the panel where they want it; it should still be there next
--- time. Stored the way the game hands the position back, so it survives a
--- different resolution or UI scale.
-local function savePosition()
-  if not frame or not db then return end
-  local point, _, relative, x, y = frame:GetPoint()
-  if not point then return end
-  db.point, db.relativePoint, db.x, db.y = point, relative, x, y
+-- The panel sits beside whichever window it is translating, and those two are
+-- nowhere near each other: an NPC's dialogue opens small and to the left, the
+-- map fills most of the screen. A single remembered position cannot serve both
+-- -- put it where it belongs next to the dialogue and it lands over the middle
+-- of the map -- so each window keeps its own.
+local function currentHost()
+  if QuestFrame and QuestFrame:IsShown() then return "quest", QuestFrame end
+  if WorldMapFrame and WorldMapFrame:IsShown() then return "map", WorldMapFrame end
+  return nil, nil
 end
 
-local function restorePosition()
+local context = "quest"
+
+local function savedPositions()
+  if not db then return nil end
+  db.pos = db.pos or {}
+  -- Earlier versions kept one position for both. Seed both contexts with it so
+  -- an upgrade does not throw away where the player had put the panel.
+  if db.point and db.x and db.y then
+    local old = { point = db.point, relativePoint = db.relativePoint, x = db.x, y = db.y }
+    db.pos.quest = db.pos.quest or old
+    db.pos.map = db.pos.map or old
+    db.point, db.relativePoint, db.x, db.y = nil, nil, nil, nil
+  end
+  return db.pos
+end
+
+local function savePosition()
   if not frame then return end
+  local positions = savedPositions()
+  if not positions then return end
+  local x, y = frame:GetLeft(), frame:GetTop()
+  if type(x) ~= "number" or type(y) ~= "number" then return end
+  -- Pin it to the screen rather than to the window it was sitting beside. Once
+  -- it has been moved by hand it should stay put instead of following that
+  -- window around, and the stored numbers have to still mean the same thing.
   frame:ClearAllPoints()
-  if db and db.point and db.x and db.y then
-    frame:SetPoint(db.point, UIParent, db.relativePoint or db.point, db.x, db.y)
+  frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x, y)
+  positions[context] = { point = "TOPLEFT", relativePoint = "BOTTOMLEFT", x = x, y = y }
+end
+
+local function anchorFrame()
+  if not frame then return end
+  local key, host = currentHost()
+  context = key or context
+  local positions = savedPositions()
+  local saved = positions and positions[context]
+  frame:ClearAllPoints()
+  if saved then
+    frame:SetPoint(saved.point, UIParent, saved.relativePoint or saved.point, saved.x, saved.y)
+  elseif host then
+    frame:SetPoint("TOPLEFT", host, "TOPRIGHT", 4, 0)
   else
     frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
   end
@@ -118,9 +155,8 @@ local function ensureFrame()
   -- A frame with no anchor point has no position, and the game draws nothing --
   -- Show() succeeds and the panel is simply not on screen anywhere. Every child
   -- below is anchored; the window itself never was, so it has never actually
-  -- been visible on its own. Where the player last dragged it, or the middle of
-  -- the screen the first time.
-  restorePosition()
+  -- been visible on its own.
+  anchorFrame()
   applyTheme(frame)
   if WordHunterWoW_Addon then WordHunterWoW_Addon.enPanel = frame end
   if WordHunterWoW_Addon and WordHunterWoW_Addon.MakeResizable then
@@ -201,6 +237,7 @@ local function showQuest(questId)
   end
   local f = ensureFrame()
   applyTheme(f)
+  anchorFrame()
   f.title:SetText(title or ("English quest #" .. questId))
   f.text:SetText(body or "English text is not available for this quest.")
   layoutContent()

@@ -11,16 +11,28 @@ local texts, shows = {}, 0
 -- Every frame is the same thing: a table that is also callable, so both
 -- f:Method(...) and f.child:Method(...) work without knowing the shape in
 -- advance. SetText and Show are recorded; everything else is a no-op.
-local points = {}
+local points, handlers = {}, {}
+local panel
+local questShown, mapShown = true, false
 
 local function node(record)
   local t = {}
   return setmetatable(t, {
     __index = function(_, key)
       if record and key == "SetPoint" then
-        return function(_, point) points[#points + 1] = tostring(point) end
+        return function(_, point, relativeTo)
+          local host = "screen"
+          if relativeTo == QuestFrame then host = "QuestFrame"
+          elseif relativeTo == WorldMapFrame then host = "WorldMapFrame" end
+          points[#points + 1] = tostring(point) .. " of " .. host
+        end
       end
       if record and key == "ClearAllPoints" then return function() end end
+      if record and key == "SetScript" then
+        return function(_, script, fn) handlers[script] = fn end
+      end
+      if record and key == "GetLeft" then return function() return 700 end end
+      if record and key == "GetTop" then return function() return 600 end end
       if record and key == "GetPoint" then
         return function() return "CENTER", nil, "CENTER", 0, 0 end
       end
@@ -42,6 +54,7 @@ CreateFrame = function(_, name)
   -- Only the panel window itself records its anchoring; its children all
   -- anchored correctly even when the window did not.
   local f = node(name == "WordHunterWoWENPanelFrame")
+  if name == "WordHunterWoWENPanelFrame" then panel = f end
   if not events then
     events = { RegisterEvent = function() end }
     rawset(events, "SetScript", function(_, _, fn) rawset(events, "fn", fn) end)
@@ -56,6 +69,8 @@ UIParent = node()
 GetQuestID = function() return 184 end
 hooksecurefunc = function() end
 QuestFrame, WorldMapFrame, QuestMapFrame = node(), node(), node()
+rawset(QuestFrame, "IsShown", function() return questShown end)
+rawset(WorldMapFrame, "IsShown", function() return mapShown end)
 QuestInfo_ShowDescriptionText = function() end
 QuestMapFrame_ShowQuestDetails = function() end
 QuestMapFrame_GetDetailQuestID = function() return 0 end
@@ -112,6 +127,29 @@ print("  base addon loading later still attaches the integration")
 -- Show() succeeds and the panel is nowhere on screen. Every child was anchored,
 -- which is why this went unnoticed: the code looks full of SetPoint calls.
 assert(#points > 0, "the panel window was never anchored, so it cannot be visible")
-print("  panel window is anchored (" .. table.concat(points, ", ") .. ")")
+-- and it belongs beside the quest window it is translating, not adrift in the
+-- middle of the screen
+assert(points[#points] == "TOPLEFT of QuestFrame",
+       "with an NPC quest open the panel should sit beside it, got: " .. points[#points])
+print("  anchored beside the NPC quest window")
+
+-- The map is nowhere near the dialogue window, so it gets its own position.
+-- Dragging the panel while talking to an NPC must not move it on the map.
+assert(handlers.OnDragStop, "the panel never registered a drag handler")
+handlers.OnDragStop(panel)
+questShown, mapShown = false, true
+events.fn(nil, "QUEST_DETAIL")
+assert(points[#points] == "TOPLEFT of WorldMapFrame",
+       "on the map the panel should sit beside the map, not where it was dragged "
+       .. "beside the dialogue, got: " .. points[#points])
+print("  the map keeps its own position, not the dialogue's")
+
+-- and each remembered position is used again for its own window
+handlers.OnDragStop(panel)
+questShown, mapShown = true, false
+events.fn(nil, "QUEST_DETAIL")
+assert(points[#points] == "TOPLEFT of screen",
+       "the dialogue should reuse its own remembered position, got: " .. points[#points])
+print("  both windows remember where the player put the panel")
 
 print("standalone: all assertions passed")
