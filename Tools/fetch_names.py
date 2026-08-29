@@ -3,14 +3,17 @@
 
 Everything here comes from the official API on this project's own credentials.
 
-Two things make this cheap enough to be worth doing. The search endpoints return
-the full record for each hit, and a record asked for without a `locale` carries
-every language at once -- so one request yields up to 1000 entities in all six
-languages, not one entity in one language. And search accepts a range filter on
-`id`, which sidesteps the 1000-result cap: walk the id space in windows small
-enough that no window overflows, and nothing is missed.
+Only the English name is kept. This panel shows English to someone playing in
+another language; the game is already putting the German or French name on
+their screen, so storing it again would be dead weight.
 
-That turns roughly 700,000 detail requests into a few thousand search requests.
+Two things make this cheap enough to be worth doing. The search endpoints return
+the full record for each hit, so one request yields up to 1000 entities rather
+than one. And search accepts a range filter on `id`, which sidesteps the
+1000-result cap: walk the id space in windows small enough that no window
+overflows, and nothing is missed.
+
+That turns roughly 700,000 detail requests into a few hundred search requests.
 
     python Tools/fetch_names.py --kind item
     python Tools/fetch_names.py --kind spell
@@ -24,7 +27,12 @@ import urllib.error, urllib.parse, urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 CACHE = ROOT / "Data/cache"
-LOCALES = ("en_US", "de_DE", "fr_FR", "es_ES", "es_MX", "it_IT", "pt_BR")
+# English only, deliberately. This panel exists to show English to someone
+# playing in another language -- the game is already showing them the German or
+# French name, so carrying it a second time is dead weight. A record asked for
+# without a locale comes back with every language, and keeping only one of them
+# is what makes the pack 8 MB instead of 50 MB.
+LOCALE = "en_US"
 PAGE_SIZE = 1000            # the per-query result cap
 KINDS = {
     # kind: (search path, id ceiling to walk to, starting window)
@@ -80,14 +88,14 @@ class Api:
         return None
 
 
-def names_from(record):
-    """Pull the localized name off a search hit, dropping locales it lacks."""
+def english_name(record):
+    """The English name off a search hit, or None if it has none."""
     name = record.get("name")
     if isinstance(name, str):
-        return {"en_US": name}
-    if not isinstance(name, dict):
-        return {}
-    return {loc: name[loc] for loc in LOCALES if name.get(loc)}
+        return name.strip() or None
+    if isinstance(name, dict):
+        return (name.get(LOCALE) or "").strip() or None
+    return None
 
 
 def main():
@@ -142,11 +150,11 @@ def main():
                     rid = rec.get("id")
                     if rid is None or rid in have:
                         continue
-                    names = names_from(rec)
-                    if not names.get("en_US"):
+                    name = english_name(rec)
+                    if not name:
                         continue
                     have.add(rid)
-                    fh.write(json.dumps({"id": rid, "names": names}, ensure_ascii=False) + "\n")
+                    fh.write(json.dumps({"id": rid, "name": name}, ensure_ascii=False) + "\n")
                     written += 1
                 break
             lo = hi
