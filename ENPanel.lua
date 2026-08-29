@@ -155,12 +155,16 @@ local function showQuest(questId)
   local lastQuest = Addon and Addon.lastQuest
   local passage = (lastQuest and lastQuest.passage) or lastPassage
   if body and passage and passage ~= "offer" then
-    local caveat = (Addon.LABELS and Addon.LABELS.enOfferOnly)
+    -- Addon is nil whenever the base addon is absent or switched off, which is
+    -- the normal case now that this works on its own. Until lastPassage existed
+    -- this branch could only be reached when the base had supplied the passage,
+    -- so it was safe by accident; it is not any more.
+    local caveat = (Addon and Addon.LABELS and Addon.LABELS.enOfferOnly)
       or "[Blizzard publishes no English text for this part of a quest. Showing the quest's opening text instead.]"
     -- Red, and on its own line: it is a warning about the text underneath, not a
-    -- part of it. Fall back to a fixed red if the base addon is an older version
-    -- that has no caveat colour.
-    local color = Addon.COLORS and Addon.COLORS.caveat
+    -- part of it. Fall back to a fixed red if the base addon is absent or is an
+    -- older version that has no caveat colour.
+    local color = Addon and Addon.COLORS and Addon.COLORS.caveat
     local hex = color
       and string.format("%02x%02x%02x", color[1] * 255, color[2] * 255, color[3] * 255)
       or "ff6b6b"
