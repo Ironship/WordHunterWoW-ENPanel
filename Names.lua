@@ -93,6 +93,9 @@ local function appendName(tooltip, kind, id)
   local repeated = first and first.GetText and first:GetText() == english
   local description = ENPanelNames.GetDescription(kind, id)
   if repeated and not description then return end
+  -- A blank line first. Without it the English runs straight on from the German
+  -- and the tooltip reads as one confused paragraph in two languages.
+  tooltip:AddLine(" ")
   if not repeated then
     tooltip:AddDoubleLine(LABEL, english, 0.55, 0.62, 0.78, 1.00, 0.82, 0.30)
   end

@@ -53,12 +53,13 @@ local function reset(tt) tt.lines, tt.shown = {}, 0 end
 -- spell: German client should get the English name appended
 reset(GameTooltip)
 hook(GameTooltip, { type = 2, id = 133 })
-assert(GameTooltip.lines[1] == "English = Fireball", "spell: " .. tostring(GameTooltip.lines[1]))
+assert(GameTooltip.lines[1] == " ", "a blank line must come first")
+assert(GameTooltip.lines[2] == "English = Fireball", "spell: " .. tostring(GameTooltip.lines[2]))
 
 -- npc: the creature id has to come out of the guid, not data.id
 reset(GameTooltip)
 hook(GameTooltip, { type = 3, id = "player" })
-assert(GameTooltip.lines[1] == "English = Forest Spider", "npc: " .. tostring(GameTooltip.lines[1]))
+assert(GameTooltip.lines[2] == "English = Forest Spider", "npc: " .. tostring(GameTooltip.lines[2]))
 
 -- a pet guid is not a creature and must not be looked up
 reset(GameTooltip)
@@ -74,7 +75,7 @@ assert(#GameTooltip.lines == 0, "item without the pack should add nothing")
 assert(N.Register("item", { [19019] = "Thunderfury, Blessed Blade of the Windseeker" }))
 reset(GameTooltip)
 hook(GameTooltip, { type = 1, id = 19019 })
-assert(GameTooltip.lines[1]:find("Thunderfury", 1, true), "item after register: " .. tostring(GameTooltip.lines[1]))
+assert(GameTooltip.lines[2]:find("Thunderfury", 1, true), "item after register: " .. tostring(GameTooltip.lines[2]))
 
 -- an unknown id adds nothing rather than an empty line
 reset(GameTooltip)
@@ -111,28 +112,29 @@ _G["GameTooltipTextLeft1"] = { GetText = function() return "Feuerball" end }
 WordHunterWoW_ENDesc_Spell[133] = "Hurls a fiery ball that causes damage."
 reset(GameTooltip)
 hook(GameTooltip, { type = 2, id = 133 })
-assert(GameTooltip.lines[1] == "English = Fireball", "name line: " .. tostring(GameTooltip.lines[1]))
-assert(GameTooltip.lines[2] == "Hurls a fiery ball that causes damage.", "desc line: " .. tostring(GameTooltip.lines[2]))
+assert(GameTooltip.lines[1] == " ", "separator")
+assert(GameTooltip.lines[2] == "English = Fireball", "name line: " .. tostring(GameTooltip.lines[2]))
+assert(GameTooltip.lines[3] == "Hurls a fiery ball that causes damage.", "desc line: " .. tostring(GameTooltip.lines[3]))
 
 -- a spell with a name but no description still gets its name
 reset(GameTooltip)
 hook(GameTooltip, { type = 2, id = 585 })
-assert(#GameTooltip.lines == 1, "name only when there is no description")
+assert(#GameTooltip.lines == 2, "separator + name when there is no description")
 
 -- when the tooltip already says the English name, the description is still
 -- worth adding on its own -- but the repeated name is not
 _G["GameTooltipTextLeft1"] = { GetText = function() return "Fireball" end }
 reset(GameTooltip)
 hook(GameTooltip, { type = 2, id = 133 })
-assert(#GameTooltip.lines == 1 and GameTooltip.lines[1]:find("Hurls", 1, true),
-       "English client name repeat: " .. tostring(GameTooltip.lines[1]))
+assert(#GameTooltip.lines == 2 and GameTooltip.lines[2]:find("Hurls", 1, true),
+       "English client name repeat: " .. tostring(GameTooltip.lines[2]))
 _G["GameTooltipTextLeft1"] = { GetText = function() return "Feuerball" end }
 
 -- an empty description string must not produce a blank line
 WordHunterWoW_ENDesc_Spell[2050] = ""
 reset(GameTooltip)
 hook(GameTooltip, { type = 2, id = 2050 })
-assert(#GameTooltip.lines == 1, "empty description must not add a line")
+assert(#GameTooltip.lines == 2, "empty description must not add a line")
 
 local c = N.Counts()
 print(string.format("all assertions passed  (spell=%d npc=%d item=%d)", c.spell, c.npc, c.item or 0))

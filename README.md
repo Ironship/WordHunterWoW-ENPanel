@@ -18,6 +18,12 @@ Hover a spell or an NPC and the English name appears on the tooltip the game alr
 
 Spell and creature names ship with the panel — 8,941 and 13,500 of them, small enough to be free. **Item names are a separate download**, [English Item Names](https://github.com/Ironship/WordHunterWoW-ENPanel-Items): 168,833 entries and around ten megabytes, which is most of what this data weighs, so you decide whether you want them.
 
+Spells also carry their English description, so you learn what the ability does and not just what to search for. 8,319 of the 8,941 have one.
+
+**About the numbers in a spell description.** Blizzard's API publishes a spell's text with base, unscaled values; the game computes what it shows from your character's level and stats. So `Tiger Palm` reads *"dealing 32 Physical damage"* here while your tooltip above says 146. The mechanic is right and anything that does not scale — percentages, durations, target counts — is exact. Only absolute damage and healing figures are indicative.
+
+Substituting the live numbers into the English sentence is not safe: the two languages order them differently in about a fifth of spells, so the damage figure and the duration would swap places. Showing a stale number beats confidently showing the wrong one.
+
 On an English client the whole feature stays quiet — there would be nothing to add.
 
 ## What it cannot show you
