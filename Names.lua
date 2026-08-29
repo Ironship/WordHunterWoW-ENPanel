@@ -12,6 +12,7 @@ local addonName = ...
 
 WordHunterWoW_ENNames_Spell = WordHunterWoW_ENNames_Spell or {}
 WordHunterWoW_ENNames_NPC = WordHunterWoW_ENNames_NPC or {}
+WordHunterWoW_ENDesc_Spell = WordHunterWoW_ENDesc_Spell or {}
 
 local ENPanelNames = {}
 _G.WordHunterWoW_ENPanelNames = ENPanelNames
@@ -21,12 +22,19 @@ local tables = {
   spell = WordHunterWoW_ENNames_Spell,
   npc = WordHunterWoW_ENNames_NPC,
 }
+-- What the thing actually does, in English. A name on its own tells you what to
+-- search for; the description tells you what you are looking at. Creatures have
+-- none -- the game has no text for them either.
+local descriptions = {
+  spell = WordHunterWoW_ENDesc_Spell,
+}
 
 -- Optional name packs call this. Kept deliberately small: a pack is a kind and
 -- a table of id -> English name, nothing more.
-function ENPanelNames.Register(kind, entries)
+function ENPanelNames.Register(kind, entries, texts)
   if not KINDS[kind] or type(entries) ~= "table" then return false end
   tables[kind] = entries
+  if type(texts) == "table" then descriptions[kind] = texts end
   return true
 end
 
@@ -34,6 +42,14 @@ function ENPanelNames.Get(kind, id)
   local source = tables[kind]
   if not source or not id then return nil end
   return source[tonumber(id)]
+end
+
+function ENPanelNames.GetDescription(kind, id)
+  local source = descriptions[kind]
+  if not source or not id then return nil end
+  local text = source[tonumber(id)]
+  if text == nil or text == "" then return nil end
+  return text
 end
 
 function ENPanelNames.Counts()
@@ -74,8 +90,18 @@ local function appendName(tooltip, kind, id)
   -- Adding the line when the tooltip already shows that exact text would just
   -- repeat the title back at the player.
   local first = _G[tooltip:GetName() .. "TextLeft1"]
-  if first and first.GetText and first:GetText() == english then return end
-  tooltip:AddDoubleLine(LABEL, english, 0.55, 0.62, 0.78, 1.00, 0.82, 0.30)
+  local repeated = first and first.GetText and first:GetText() == english
+  local description = ENPanelNames.GetDescription(kind, id)
+  if repeated and not description then return end
+  if not repeated then
+    tooltip:AddDoubleLine(LABEL, english, 0.55, 0.62, 0.78, 1.00, 0.82, 0.30)
+  end
+  if description then
+    -- Wrapped, and in the gold the game uses for an ability's effect text, so it
+    -- reads as the English half of what is already above it rather than as a
+    -- separate addon shouting.
+    tooltip:AddLine(description, 1.00, 0.82, 0.30, true)
+  end
   tooltip:Show()
 end
 ENPanelNames.AppendName = appendName

@@ -16,6 +16,8 @@ VARS = {"item": "WordHunterWoW_ENNames_Item",
         "spell": "WordHunterWoW_ENNames_Spell",
         "creature": "WordHunterWoW_ENNames_NPC"}
 STEMS = {"item": "NamesItem", "spell": "NamesSpell", "creature": "NamesNPC"}
+DESC_VARS = {"item": "WordHunterWoW_ENDesc_Item", "spell": "WordHunterWoW_ENDesc_Spell"}
+DESC_STEMS = {"item": "DescItem", "spell": "DescSpell"}
 
 
 def quote(value):
@@ -28,22 +30,29 @@ def main():
     ap.add_argument("--kind", choices=VARS, required=True)
     ap.add_argument("--out", required=True, help="Data directory to write into")
     ap.add_argument("--chunk", type=int, default=0, help="split into files of N entries")
+    ap.add_argument("--desc", action="store_true",
+                    help="build the description table instead of the name table")
     args = ap.parse_args()
 
-    src = ROOT / f"Data/cache/names_{args.kind}.jsonl"
+    if args.desc and args.kind not in DESC_VARS:
+        sys.exit(f"no descriptions exist for {args.kind}")
+    src = ROOT / (f"Data/cache/desc_{args.kind}.jsonl" if args.desc
+                  else f"Data/cache/names_{args.kind}.jsonl")
     rows = []
     for line in src.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
         r = json.loads(line)
-        name = (r.get("name") or "").strip()
-        if name:
-            rows.append((int(r["id"]), name))
+        text = (r.get("text") if args.desc else r.get("name")) or ""
+        text = text.strip()
+        if text:
+            rows.append((int(r["id"]), text))
     rows.sort()
 
     out_dir = pathlib.Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
-    var, stem = VARS[args.kind], STEMS[args.kind]
+    var = DESC_VARS[args.kind] if args.desc else VARS[args.kind]
+    stem = DESC_STEMS[args.kind] if args.desc else STEMS[args.kind]
 
     # Clear any files a previous, longer run left behind, so a shrinking data set
     # cannot leave a stale tail loaded alongside the fresh files.

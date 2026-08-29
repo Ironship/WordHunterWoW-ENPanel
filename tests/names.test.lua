@@ -22,6 +22,7 @@ local function makeTooltip(name, firstLine)
   local tt = { lines = {}, shown = 0 }
   function tt:GetName() return name end
   function tt:AddDoubleLine(l, r) self.lines[#self.lines + 1] = l .. " = " .. r end
+  function tt:AddLine(text) self.lines[#self.lines + 1] = text end
   function tt:Show() self.shown = self.shown + 1 end
   _G[name .. "TextLeft1"] = { GetText = function() return firstLine end }
   return tt
@@ -104,6 +105,34 @@ _G["GameTooltipTextLeft1"] = { GetText = function() return "Fireball" end }
 reset(GameTooltip)
 hook(GameTooltip, { type = 2, id = 133 })
 assert(#GameTooltip.lines == 0, "must not repeat the title back")
+
+-- descriptions
+_G["GameTooltipTextLeft1"] = { GetText = function() return "Feuerball" end }
+WordHunterWoW_ENDesc_Spell[133] = "Hurls a fiery ball that causes damage."
+reset(GameTooltip)
+hook(GameTooltip, { type = 2, id = 133 })
+assert(GameTooltip.lines[1] == "English = Fireball", "name line: " .. tostring(GameTooltip.lines[1]))
+assert(GameTooltip.lines[2] == "Hurls a fiery ball that causes damage.", "desc line: " .. tostring(GameTooltip.lines[2]))
+
+-- a spell with a name but no description still gets its name
+reset(GameTooltip)
+hook(GameTooltip, { type = 2, id = 585 })
+assert(#GameTooltip.lines == 1, "name only when there is no description")
+
+-- when the tooltip already says the English name, the description is still
+-- worth adding on its own -- but the repeated name is not
+_G["GameTooltipTextLeft1"] = { GetText = function() return "Fireball" end }
+reset(GameTooltip)
+hook(GameTooltip, { type = 2, id = 133 })
+assert(#GameTooltip.lines == 1 and GameTooltip.lines[1]:find("Hurls", 1, true),
+       "English client name repeat: " .. tostring(GameTooltip.lines[1]))
+_G["GameTooltipTextLeft1"] = { GetText = function() return "Feuerball" end }
+
+-- an empty description string must not produce a blank line
+WordHunterWoW_ENDesc_Spell[2050] = ""
+reset(GameTooltip)
+hook(GameTooltip, { type = 2, id = 2050 })
+assert(#GameTooltip.lines == 1, "empty description must not add a line")
 
 local c = N.Counts()
 print(string.format("all assertions passed  (spell=%d npc=%d item=%d)", c.spell, c.npc, c.item or 0))
