@@ -5,6 +5,10 @@ local questInfoHooked
 local questMapHooked
 local hideWatched = {}
 local db
+-- Which passage the NPC is showing. The base addon works this out too, and its
+-- answer is preferred when it is installed, but this addon has to stand on its
+-- own: without it there is nothing to ask.
+local lastPassage = "offer"
 
 local function layoutContent()
   if not frame then return end
@@ -149,7 +153,8 @@ local function showQuest(questId)
   -- progress or hand-in lines instead, say so rather than passing off the opening
   -- text as a translation of what the player is reading.
   local lastQuest = Addon and Addon.lastQuest
-  if body and lastQuest and lastQuest.passage and lastQuest.passage ~= "offer" then
+  local passage = (lastQuest and lastQuest.passage) or lastPassage
+  if body and passage and passage ~= "offer" then
     local caveat = (Addon.LABELS and Addon.LABELS.enOfferOnly)
       or "[Blizzard publishes no English text for this part of a quest. Showing the quest's opening text instead.]"
     -- Red, and on its own line: it is a warning about the text underneath, not a
@@ -183,6 +188,9 @@ local function hookQuestUi()
       C_Timer.After(0, function()
         local questId = QuestMapFrame_GetDetailQuestID and QuestMapFrame_GetDetailQuestID()
         if not questId or questId == 0 then questId = C_QuestLog.GetSelectedQuest() end
+        -- Reading a quest in the log always shows its offer text, whatever the
+        -- last NPC conversation happened to be.
+        lastPassage = "offer"
         showQuest(questId)
       end)
     end)
@@ -220,8 +228,18 @@ events:SetScript("OnEvent", function(_, event, loaded)
       hookQuestUi()
     end
   elseif event == "QUEST_FINISHED" then
+    lastPassage = "offer"
     if frame then frame:Hide() end
   else
+    -- QUEST_DETAIL is the offer, QUEST_PROGRESS the "are you done yet" line,
+    -- QUEST_COMPLETE the hand-in. Only the first has English text behind it.
+    if event == "QUEST_PROGRESS" then
+      lastPassage = "progress"
+    elseif event == "QUEST_COMPLETE" then
+      lastPassage = "reward"
+    else
+      lastPassage = "offer"
+    end
     hookQuestUi()
     C_Timer.After(0, function() showQuest() end)
   end

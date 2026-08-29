@@ -2,7 +2,11 @@
 
 You are playing WoW in German (or French, Spanish, …) on purpose. That is the point. But every so often a sentence is just *too* thick and you want the English version without leaving the game.
 
-This optional addon sits next to [QuestWordHunter](https://github.com/Ironship/WordHunterWoW) and shows the official English title and description for the quest you have open. The base addon still reads the original language so you can click and save those words.
+It shows the official English title and description for the quest you have open, in its own window, while the game itself stays in the language you are playing.
+
+**It works on its own.** Install it, play in German, French, Spanish, Italian or Portuguese, and read the English when a sentence defeats you. Nothing else is required.
+
+If you also install [QuestWordHunter](https://github.com/Ironship/WordHunterWoW), the two combine: the quest text becomes clickable for saving vocabulary, and this panel can dock beside it instead of floating.
 
 <img width="1044" height="909" alt="{27A402AE-8B2E-4C42-90B0-DF0C4C845C2E}" src="https://github.com/user-attachments/assets/c41b2c8e-3f8f-4d33-a475-0c7fc2e8ddfe" />
 
@@ -15,7 +19,7 @@ Blizzard's quest API publishes a quest's title and its opening text and nothing 
 ## What you need
 
 - Retail 12.1 (`Interface 120100`)
-- [QuestWordHunter](https://github.com/Ironship/WordHunterWoW) — this pack does nothing without it
+- Nothing else. [QuestWordHunter](https://github.com/Ironship/WordHunterWoW) is optional and adds clickable words on top.
 
 ## Rebuild (maintainers)
 
