@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff0a0"/><stop offset=".3" stop-color="#e7a62d"/><stop offset=".7" stop-color="#7b3e0b"/><stop offset="1" stop-color="#f6c553"/></linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff4bd"/><stop offset=".55" stop-color="#e5bb66"/><stop offset="1" stop-color="#8f5420"/></linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="170%" height="180%"><feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#02080d" flood-opacity=".85"/></filter>
+    <clipPath id="shield"><path d="M716 661Q820 616 924 661v143q0 105-104 163-104-58-104-163z"/></clipPath>
+  </defs>
+  <rect width="1024" height="1024" fill="#061724"/>
+  <image href="../../WordHunterWoW/art/icon_wordhunter.png" width="1024" height="1024"/>
+  <g filter="url(#shadow)">
+    <path d="M706 653Q820 601 934 653v151q0 116-114 178-114-62-114-178z" fill="#071d2d" stroke="#071018" stroke-width="28"/>
+    <path d="M716 661Q820 616 924 661v143q0 105-104 163-104-58-104-163z" fill="#123f4d" stroke="url(#gold)" stroke-width="13"/>
+    <g clip-path="url(#shield)">
+      <rect x="716" y="655" width="208" height="96" fill="#183e7a"/>
+      <path d="M716 655l208 96m0-96l-208 96" stroke="#fff" stroke-width="21"/>
+      <path d="M716 655l208 96m0-96l-208 96" stroke="#c62832" stroke-width="9"/>
+      <path d="M820 651v104M712 703h216" stroke="#fff" stroke-width="32"/>
+      <path d="M820 651v104M712 703h216" stroke="#d32635" stroke-width="16"/>
+    </g>
+    <path d="M756 788q12-20 32-7h88q20-13 30 7v108q-12 20-31 7h-89q-20 13-30-7z" fill="url(#paper)" stroke="#48270c" stroke-width="11"/>
+    <path d="M772 786v115m118-115v115" stroke="#fff0b3" stroke-width="10" opacity=".72"/>
+    <path d="M797 814h68m-68 23h68m-68 23h48" stroke="#765024" stroke-width="9" stroke-linecap="round"/>
+    <path d="M751 789q21-17 42 0v108q-21 17-42 0zm118 0q21-17 42 0v108q-21 17-42 0z" fill="url(#paper)" stroke="#5a310d" stroke-width="9"/>
+  </g>
+</svg>
