@@ -87,4 +87,14 @@ events.fn(nil, "QUEST_PROGRESS")
 assert(shows > before, "the panel never showed at progress")
 print("  progress shown")
 
+-- Without OptionalDeps the base addon can load after this one. The integration
+-- must attach when that happens, not only when this addon loads first.
+WordHunterWoW_Addon = { applied = 0 }
+WordHunterWoW_Addon.ApplyIntegratedLayout = function() WordHunterWoW_Addon.applied = 1 end
+events.fn(nil, "ADDON_LOADED", "WordHunterWoW")
+assert(WordHunterWoW_Addon.OnIntegratedLayoutChanged,
+       "integration was not attached when the base addon loaded afterwards")
+assert(WordHunterWoW_Addon.applied == 1, "the base layout was never applied")
+print("  base addon loading later still attaches the integration")
+
 print("standalone: all assertions passed")

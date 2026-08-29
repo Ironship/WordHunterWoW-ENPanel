@@ -205,6 +205,21 @@ local function hookQuestUi()
   if QuestMapFrame and QuestMapFrame.DetailsFrame then watchHide(QuestMapFrame.DetailsFrame) end
 end
 
+-- Wire up the two-way integration with the base addon, if it is there. Safe to
+-- call more than once and safe to call when the base is absent.
+local function hookBaseAddon()
+  local Addon = WordHunterWoW_Addon
+  if not Addon then return end
+  Addon.OnIntegratedLayoutChanged = function(integrated)
+    if integrated then
+      if frame then frame:Hide() end
+    else
+      showQuest()
+    end
+  end
+  if Addon.ApplyIntegratedLayout then Addon.ApplyIntegratedLayout() end
+end
+
 local events = CreateFrame("Frame")
 events:RegisterEvent("ADDON_LOADED")
 events:RegisterEvent("QUEST_DETAIL")
@@ -217,17 +232,14 @@ events:SetScript("OnEvent", function(_, event, loaded)
       WordHunterWoWENPanelDB = WordHunterWoWENPanelDB or {}
       db = WordHunterWoWENPanelDB
       hookQuestUi()
-      local Addon = WordHunterWoW_Addon
-      if Addon then
-        Addon.OnIntegratedLayoutChanged = function(integrated)
-          if integrated then
-            if frame then frame:Hide() end
-          else
-            showQuest()
-          end
-        end
-        if Addon.ApplyIntegratedLayout then Addon.ApplyIntegratedLayout() end
-      end
+      hookBaseAddon()
+    elseif loaded == "WordHunterWoW" then
+      -- The base addon may load after this one. Declaring it as an optional
+      -- dependency would fix the order, but it also makes WoW file this addon
+      -- under it in the AddOns list as though it were a component of it, which
+      -- it is not. Reacting to the load instead costs one branch and leaves
+      -- this addon standing on its own in the list.
+      hookBaseAddon()
     elseif loaded == "Blizzard_WorldMap" or loaded == "Blizzard_UIPanels_Game" then
       hookQuestUi()
     end
