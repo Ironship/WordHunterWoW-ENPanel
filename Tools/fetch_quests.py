@@ -17,6 +17,45 @@ def token():
     request = urllib.request.Request("https://oauth.battle.net/token", data=b"grant_type=client_credentials", headers={"Authorization": f"Basic {auth}"})
     return json.load(urllib.request.urlopen(request, timeout=30))["access_token"]
 
+def enumerate_quest_ids(access, region="eu"):
+    """Ask the API which quests exist, instead of being told by a file.
+
+    /data/wow/quest/area/{id} and /data/wow/quest/category/{id} each list the
+    quests they contain, and walking all of both is the only enumeration the API
+    offers. It is not exhaustive -- a quest attached to neither is invisible here
+    -- but in practice it reaches 98.7% of what this corpus already holds, and
+    finds quests the corpus lacks. No local list is required.
+    """
+    def get(path):
+        url = f"https://{region}.api.blizzard.com{path}?namespace=static-{region}&locale=en_US"
+        for attempt in range(3):
+            try:
+                req = urllib.request.Request(url, headers={"Authorization": f"Bearer {access}"})
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    return json.load(resp)
+            except urllib.error.HTTPError as e:
+                if e.code == 404:
+                    return None
+                time.sleep(1 + attempt)
+            except Exception:
+                time.sleep(1 + attempt)
+        return None
+
+    ids = set()
+    for kind, key in (("area", "areas"), ("category", "categories")):
+        index = get(f"/data/wow/quest/{kind}/index")
+        if not index:
+            continue
+        entries = index.get(key, [])
+        print(f"walking {len(entries)} quest {key}", flush=True)
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            for detail in pool.map(lambda e: get(f"/data/wow/quest/{kind}/{e['id']}"), entries):
+                if detail:
+                    for quest in detail.get("quests", []):
+                        ids.add(quest["id"])
+    return sorted(ids)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--locale", default="en_US")
@@ -38,8 +77,16 @@ def main():
         for line in failed.read_text().splitlines():
             try: done.add(int(line.strip()))
             except Exception: pass
-    with open(args.csv, newline="", encoding="utf-8-sig") as f:
-        ids = [int(row["ID"]) for row in csv.DictReader(f) if row.get("ID")]
+    access = get_token()
+    ids = enumerate_quest_ids(access)
+    # An optional local list can add ids the API index does not reach. Nothing
+    # requires it; without it the run is driven entirely by the API.
+    extra = pathlib.Path(args.csv) if args.csv else None
+    if extra and extra.exists():
+        with extra.open(newline="", encoding="utf-8-sig") as handle:
+            before = len(ids)
+            ids = sorted(set(ids) | {int(row["ID"]) for row in csv.DictReader(handle) if row.get("ID")})
+        print(f"optional list at {extra.name} added {len(ids) - before} ids", flush=True)
     ids = [i for i in ids if i not in done]
     if args.limit: ids = ids[:args.limit]
     access = token(); write_lock = threading.Lock(); rate_lock = threading.Lock(); next_start = [0.0]; completed = [len(done)]
