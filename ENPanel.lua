@@ -81,6 +81,26 @@ local function watchHide(target)
   end)
 end
 
+-- The player drags the panel where they want it; it should still be there next
+-- time. Stored the way the game hands the position back, so it survives a
+-- different resolution or UI scale.
+local function savePosition()
+  if not frame or not db then return end
+  local point, _, relative, x, y = frame:GetPoint()
+  if not point then return end
+  db.point, db.relativePoint, db.x, db.y = point, relative, x, y
+end
+
+local function restorePosition()
+  if not frame then return end
+  frame:ClearAllPoints()
+  if db and db.point and db.x and db.y then
+    frame:SetPoint(db.point, UIParent, db.relativePoint or db.point, db.x, db.y)
+  else
+    frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+  end
+end
+
 local function ensureFrame()
   if frame then return frame end
   frame = CreateFrame("Frame", "WordHunterWoWENPanelFrame", UIParent, "BackdropTemplate")
@@ -91,7 +111,16 @@ local function ensureFrame()
   frame:EnableMouse(true)
   frame:RegisterForDrag("LeftButton")
   frame:SetScript("OnDragStart", frame.StartMoving)
-  frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+  frame:SetScript("OnDragStop", function(self)
+    self:StopMovingOrSizing()
+    savePosition()
+  end)
+  -- A frame with no anchor point has no position, and the game draws nothing --
+  -- Show() succeeds and the panel is simply not on screen anywhere. Every child
+  -- below is anchored; the window itself never was, so it has never actually
+  -- been visible on its own. Where the player last dragged it, or the middle of
+  -- the screen the first time.
+  restorePosition()
   applyTheme(frame)
   if WordHunterWoW_Addon then WordHunterWoW_Addon.enPanel = frame end
   if WordHunterWoW_Addon and WordHunterWoW_Addon.MakeResizable then

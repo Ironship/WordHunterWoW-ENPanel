@@ -11,10 +11,19 @@ local texts, shows = {}, 0
 -- Every frame is the same thing: a table that is also callable, so both
 -- f:Method(...) and f.child:Method(...) work without knowing the shape in
 -- advance. SetText and Show are recorded; everything else is a no-op.
-local function node()
+local points = {}
+
+local function node(record)
   local t = {}
   return setmetatable(t, {
     __index = function(_, key)
+      if record and key == "SetPoint" then
+        return function(_, point) points[#points + 1] = tostring(point) end
+      end
+      if record and key == "ClearAllPoints" then return function() end end
+      if record and key == "GetPoint" then
+        return function() return "CENTER", nil, "CENTER", 0, 0 end
+      end
       if key == "SetText" then
         return function(_, value) texts[#texts + 1] = tostring(value or "") end
       end
@@ -29,8 +38,10 @@ local function node()
 end
 
 local events
-CreateFrame = function()
-  local f = node()
+CreateFrame = function(_, name)
+  -- Only the panel window itself records its anchoring; its children all
+  -- anchored correctly even when the window did not.
+  local f = node(name == "WordHunterWoWENPanelFrame")
   if not events then
     events = { RegisterEvent = function() end }
     rawset(events, "SetScript", function(_, _, fn) rawset(events, "fn", fn) end)
@@ -96,5 +107,11 @@ assert(WordHunterWoW_Addon.OnIntegratedLayoutChanged,
        "integration was not attached when the base addon loaded afterwards")
 assert(WordHunterWoW_Addon.applied == 1, "the base layout was never applied")
 print("  base addon loading later still attaches the integration")
+
+-- A frame with no anchor point has no position and the game draws nothing, so
+-- Show() succeeds and the panel is nowhere on screen. Every child was anchored,
+-- which is why this went unnoticed: the code looks full of SetPoint calls.
+assert(#points > 0, "the panel window was never anchored, so it cannot be visible")
+print("  panel window is anchored (" .. table.concat(points, ", ") .. ")")
 
 print("standalone: all assertions passed")

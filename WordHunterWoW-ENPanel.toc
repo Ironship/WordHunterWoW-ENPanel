@@ -3,7 +3,7 @@
 ## Notes: English quest text and tooltips while you play in another language. Works on its own.
 ## IconTexture: Interface\AddOns\WordHunterWoW-ENPanel\icon
 ## Author: Ironship
-## Version: 1.2.3
+## Version: 1.2.4
 ## SavedVariables: WordHunterWoWENPanelDB
 
 Data/QuestEN_000.lua
