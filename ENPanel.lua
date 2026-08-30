@@ -1,8 +1,6 @@
 local addonName = ...
 
 local frame
-local questInfoHooked
-local questMapHooked
 local hideWatched = {}
 local db
 -- Which passage the NPC is showing. The base addon works this out too, and its
@@ -20,10 +18,27 @@ local function layoutContent()
   end
 end
 
+-- Not the compatibility layer from the base addon: this addon stands on its own
+-- and must not depend on it. All that is needed here is which family of client
+-- this is, and that is one global.
+local function isClassicClient()
+  return type(WOW_PROJECT_ID) == "number" and type(WOW_PROJECT_MAINLINE) == "number"
+     and WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE
+end
+
 local function applyTheme(target)
   local Addon = WordHunterWoW_Addon
   if Addon and Addon.ApplyBackground then
     Addon.ApplyBackground(target)
+  elseif isClassicClient() then
+    -- Classic's own frames are all this tooltip skin, and the panel should look
+    -- like it belongs beside them. The base addon defaults to the same thing
+    -- there, so a player with both installed sees one style, not two.
+    target:SetBackdrop({ bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+      edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 16,
+      tile = true, tileSize = 16, insets = { left = 3, right = 3, top = 3, bottom = 3 } })
+    target:SetBackdropColor(0.04, 0.06, 0.10, 0.94)
+    target:SetBackdropBorderColor(0.22, 0.24, 0.34, 0.95)
   else
     target:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1, insets = { left = 1, right = 1, top = 1, bottom = 1 } })
     target:SetBackdropColor(0.08, 0.09, 0.13, 0.97)
@@ -39,17 +54,49 @@ local function questText(questId)
   local objectives = entry.objectives or ""
   local body = description
   if objectives ~= "" then body = body .. (body ~= "" and "\n\n" or "") .. objectives end
-  return title, body
+  -- Whether this record has the quest's opening text at all. Retail records
+  -- always do; Classic records never do, because the source has none.
+  return title, body, description ~= ""
+end
+
+-- A Blizzard global can be missing entirely on one game and be something other
+-- than a frame on another, so nothing here indexes one without checking.
+local function isShown(frame)
+  return (type(frame) == "table" and type(frame.IsShown) == "function" and frame:IsShown()) and true or false
 end
 
 local function questFrameOpen()
-  return QuestFrame and QuestFrame:IsShown()
+  return isShown(QuestFrame)
 end
 
 local function questLogOpen()
+  -- Classic's quest log is a window of its own. Retail's lives inside the world
+  -- map, which is why Retail needs both halves checked.
+  if isShown(QuestLogFrame) then return true end
   local details = QuestMapFrame and QuestMapFrame.DetailsFrame
-  if details and details:IsShown() then return true end
-  return WorldMapFrame and WorldMapFrame:IsShown() and QuestMapFrame and QuestMapFrame:IsShown()
+  if isShown(details) then return true end
+  return isShown(WorldMapFrame) and isShown(QuestMapFrame)
+end
+
+-- Classic has no C_QuestLog.GetSelectedQuest. Its quest log knows which row is
+-- selected, and GetQuestLogTitle returns the quest id somewhere among its
+-- results -- the position has moved between builds, so rather than counting
+-- commas, take the number that maps back to the row we started from.
+local function classicSelectedQuestId()
+  if type(GetQuestLogSelection) ~= "function" or type(GetQuestLogTitle) ~= "function" then return nil end
+  if type(GetQuestLogIndexByID) ~= "function" then return nil end
+  local index = GetQuestLogSelection()
+  if not index or index <= 0 then return nil end
+  local function pick(...)
+    for i = 1, select("#", ...) do
+      local value = select(i, ...)
+      if type(value) == "number" and value > 0 and GetQuestLogIndexByID(value) == index then
+        return value
+      end
+    end
+    return nil
+  end
+  return pick(GetQuestLogTitle(index))
 end
 
 local function currentQuestId()
@@ -60,6 +107,8 @@ local function currentQuestId()
   local id = QuestMapFrame_GetDetailQuestID and QuestMapFrame_GetDetailQuestID()
   if id and id > 0 then return id end
   id = C_QuestLog and C_QuestLog.GetSelectedQuest and C_QuestLog.GetSelectedQuest()
+  if id and id > 0 then return id end
+  id = classicSelectedQuestId()
   if id and id > 0 then return id end
   id = GetQuestID and GetQuestID()
   if id and id > 0 then return id end
@@ -87,8 +136,13 @@ end
 -- -- put it where it belongs next to the dialogue and it lands over the middle
 -- of the map -- so each window keeps its own.
 local function currentHost()
-  if QuestFrame and QuestFrame:IsShown() then return "quest", QuestFrame end
-  if WorldMapFrame and WorldMapFrame:IsShown() then return "map", WorldMapFrame end
+  if isShown(QuestFrame) then return "quest", QuestFrame end
+  -- Classic's quest log window stands in for Retail's map here. It is the same
+  -- situation from the panel's point of view -- the player is reading the log
+  -- rather than talking to an NPC -- so it shares the remembered position and
+  -- an upgrading player keeps the one they already set.
+  if isShown(QuestLogFrame) then return "map", QuestLogFrame end
+  if isShown(WorldMapFrame) then return "map", WorldMapFrame end
   return nil, nil
 end
 
@@ -212,20 +266,28 @@ local function showQuest(questId)
   end
   questId = questId or currentQuestId()
   if not questId or questId == 0 then return end
-  local title, body = questText(questId)
+  local title, body, hasOpeningText = questText(questId)
   -- The shipped data holds only the quest's opening text and objectives, because
   -- that is all Blizzard's quest API publishes. When the NPC is showing the
   -- progress or hand-in lines instead, say so rather than passing off the opening
   -- text as a translation of what the player is reading.
   local lastQuest = Addon and Addon.lastQuest
   local passage = (lastQuest and lastQuest.passage) or lastPassage
+  local caveat
   if body and passage and passage ~= "offer" then
     -- Addon is nil whenever the base addon is absent or switched off, which is
     -- the normal case now that this works on its own. Until lastPassage existed
     -- this branch could only be reached when the base had supplied the passage,
     -- so it was safe by accident; it is not any more.
-    local caveat = (Addon and Addon.LABELS and Addon.LABELS.enOfferOnly)
+    caveat = (Addon and Addon.LABELS and Addon.LABELS.enOfferOnly)
       or "[Blizzard publishes no English text for this part of a quest. Showing the quest's opening text instead.]"
+  elseif body and hasOpeningText == false then
+    -- A Classic record has the title and the objective and nothing else. Left
+    -- unexplained, a one-line objective under a paragraph of German reads as if
+    -- the translation had been cut short.
+    caveat = "[No English opening text exists for this quest. Showing its objective.]"
+  end
+  if caveat then
     -- Red, and on its own line: it is a warning about the text underneath, not a
     -- part of it. Fall back to a fixed red if the base addon is absent or is an
     -- older version that has no caveat colour.
@@ -245,29 +307,46 @@ local function showQuest(questId)
   f:Raise()
 end
 
+-- Hooking a name that does not exist is an error, and half of these names are
+-- absent on any given game, so each one is checked before it is hooked and
+-- hooked only once -- hooksecurefunc cannot be undone, and a second hook would
+-- show the quest twice.
+local hookedNames = {}
+local function hookOnce(name, handler)
+  if hookedNames[name] or type(_G[name]) ~= "function" then return false end
+  hookedNames[name] = true
+  hooksecurefunc(name, handler)
+  return true
+end
+
 local function hookQuestUi()
-  if not questInfoHooked and type(QuestInfo_ShowDescriptionText) == "function" then
-    questInfoHooked = true
-    hooksecurefunc("QuestInfo_ShowDescriptionText", function()
-      C_Timer.After(0, function() showQuest() end)
+  hookOnce("QuestInfo_ShowDescriptionText", function()
+    C_Timer.After(0, function() showQuest() end)
+  end)
+  -- Reading a quest in the log always shows its offer text, whatever the last
+  -- NPC conversation happened to be.
+  hookOnce("QuestMapFrame_ShowQuestDetails", function()
+    C_Timer.After(0, function()
+      local questId = QuestMapFrame_GetDetailQuestID and QuestMapFrame_GetDetailQuestID()
+      if not questId or questId == 0 then
+        questId = C_QuestLog and C_QuestLog.GetSelectedQuest and C_QuestLog.GetSelectedQuest()
+      end
+      lastPassage = "offer"
+      showQuest(questId)
+    end)
+  end)
+  local function fromClassicLog()
+    C_Timer.After(0, function()
+      lastPassage = "offer"
+      showQuest(classicSelectedQuestId())
     end)
   end
-  if not questMapHooked and type(QuestMapFrame_ShowQuestDetails) == "function" then
-    questMapHooked = true
-    hooksecurefunc("QuestMapFrame_ShowQuestDetails", function()
-      C_Timer.After(0, function()
-        local questId = QuestMapFrame_GetDetailQuestID and QuestMapFrame_GetDetailQuestID()
-        if not questId or questId == 0 then questId = C_QuestLog.GetSelectedQuest() end
-        -- Reading a quest in the log always shows its offer text, whatever the
-        -- last NPC conversation happened to be.
-        lastPassage = "offer"
-        showQuest(questId)
-      end)
-    end)
-  end
+  hookOnce("QuestLog_SetSelection", fromClassicLog)
+  hookOnce("QuestLog_UpdateQuestDetails", fromClassicLog)
   watchHide(QuestFrame)
   watchHide(WorldMapFrame)
   watchHide(QuestMapFrame)
+  watchHide(QuestLogFrame)
   if QuestMapFrame and QuestMapFrame.DetailsFrame then watchHide(QuestMapFrame.DetailsFrame) end
 end
 

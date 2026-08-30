@@ -77,7 +77,7 @@ def main():
         for line in failed.read_text().splitlines():
             try: done.add(int(line.strip()))
             except Exception: pass
-    access = get_token()
+    access = token()
     ids = enumerate_quest_ids(access)
     # An optional local list can add ids the API index does not reach. Nothing
     # requires it; without it the run is driven entirely by the API.

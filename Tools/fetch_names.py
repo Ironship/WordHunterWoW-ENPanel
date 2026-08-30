@@ -23,6 +23,7 @@ Results are appended to Data/cache/names_<kind>.jsonl and the run resumes from
 whatever is already there, so an interrupted run costs nothing.
 """
 import argparse, base64, json, pathlib, sys, threading, time
+from products import PRODUCTS, namespace, cache_path
 import urllib.error, urllib.parse, urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -61,13 +62,14 @@ def get_token():
 
 
 class Api:
-    def __init__(self, region="eu"):
+    def __init__(self, region="eu", product="retail"):
         self.region = region
+        self.namespace = namespace(product, region)
         self.token = get_token()
         self.lock = threading.Lock()
 
     def search(self, path, lo, hi, page):
-        params = {"namespace": f"static-{self.region}", "id": f"[{lo},{hi}]",
+        params = {"namespace": self.namespace, "id": f"[{lo},{hi}]",
                   "orderby": "id", "_page": page, "_pageSize": PAGE_SIZE}
         url = f"https://{self.region}.api.blizzard.com{path}?" + urllib.parse.urlencode(params)
         for attempt in range(5):
@@ -100,16 +102,21 @@ def english_name(record):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--kind", choices=KINDS, required=True)
+    ap.add_argument("--kind", required=True)
+    ap.add_argument("--product", default="retail", choices=sorted(PRODUCTS))
     ap.add_argument("--region", default="eu")
     ap.add_argument("--max-id", type=int, help="override the id ceiling")
     args = ap.parse_args()
 
-    path, ceiling, window = KINDS[args.kind]
+    kinds = PRODUCTS[args.product]["kinds"]
+    if args.kind not in kinds:
+        sys.exit(f"{args.product} has no {args.kind} endpoint; it has "
+                 + ", ".join(sorted(kinds)))
+    path, ceiling, window = kinds[args.kind]
     if args.max_id:
         ceiling = args.max_id
     CACHE.mkdir(parents=True, exist_ok=True)
-    out_path = CACHE / f"names_{args.kind}.jsonl"
+    out_path = cache_path(CACHE, args.product, f"names_{args.kind}.jsonl")
 
     have = set()
     if out_path.exists():
@@ -119,9 +126,10 @@ def main():
                     have.add(json.loads(line)["id"])
                 except Exception:
                     pass
-    print(f"kind={args.kind} already cached={len(have):,} ceiling={ceiling:,}")
+    print(f"product={args.product} kind={args.kind} already cached={len(have):,} ceiling={ceiling:,}")
+    print(f"writing to {out_path}")
 
-    api = Api(args.region)
+    api = Api(args.region, args.product)
     lo, written, queries = 0, 0, 0
     started = time.monotonic()
     with out_path.open("a", encoding="utf-8") as fh:

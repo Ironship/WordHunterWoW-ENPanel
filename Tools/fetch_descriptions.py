@@ -12,6 +12,7 @@ Writes Data/cache/desc_<kind>.jsonl and resumes from whatever is already there.
 An id that has no description is recorded as such so it is not asked for twice.
 """
 import argparse, base64, json, pathlib, sys, threading, time
+from products import PRODUCTS, namespace, cache_path
 import urllib.error, urllib.parse, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
@@ -53,15 +54,18 @@ def describe(kind, record):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--kind", choices=PATHS, required=True)
+    ap.add_argument("--product", default="retail", choices=sorted(PRODUCTS))
     ap.add_argument("--region", default="eu")
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--limit", type=int, default=0)
     args = ap.parse_args()
 
-    names_path = CACHE / f"names_{args.kind}.jsonl"
+    names_path = cache_path(CACHE, args.product, f"names_{args.kind}.jsonl")
+    if not names_path.exists():
+        sys.exit(f"no names cached at {names_path}; run fetch_names.py --product {args.product} first")
     ids = [json.loads(l)["id"] for l in names_path.read_text(encoding="utf-8").splitlines() if l.strip()]
 
-    out_path = CACHE / f"desc_{args.kind}.jsonl"
+    out_path = cache_path(CACHE, args.product, f"desc_{args.kind}.jsonl")
     done = set()
     if out_path.exists():
         for line in out_path.read_text(encoding="utf-8").splitlines():
@@ -73,7 +77,7 @@ def main():
     todo = [i for i in ids if i not in done]
     if args.limit:
         todo = todo[:args.limit]
-    print(f"kind={args.kind} known={len(ids):,} already described={len(done):,} to fetch={len(todo):,}")
+    print(f"product={args.product} kind={args.kind} known={len(ids):,} already described={len(done):,} to fetch={len(todo):,}")
 
     token = [get_token()]
     lock = threading.Lock()
@@ -84,7 +88,7 @@ def main():
     def fetch(entity_id):
         url = (f"https://{args.region}.api.blizzard.com"
                + PATHS[args.kind].format(entity_id)
-               + f"?namespace=static-{args.region}&locale=en_US")
+               + f"?namespace={namespace(args.product, args.region)}&locale=en_US")
         for attempt in range(4):
             try:
                 req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token[0]}"})

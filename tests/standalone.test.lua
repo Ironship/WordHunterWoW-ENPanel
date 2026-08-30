@@ -23,7 +23,8 @@ local function node(record)
         return function(_, point, relativeTo)
           local host = "screen"
           if relativeTo == QuestFrame then host = "QuestFrame"
-          elseif relativeTo == WorldMapFrame then host = "WorldMapFrame" end
+          elseif relativeTo == WorldMapFrame then host = "WorldMapFrame"
+          elseif QuestLogFrame and relativeTo == QuestLogFrame then host = "QuestLogFrame" end
           points[#points + 1] = tostring(point) .. " of " .. host
         end
       end
@@ -152,4 +153,43 @@ assert(points[#points] == "TOPLEFT of screen",
        "the dialogue should reuse its own remembered position, got: " .. points[#points])
 print("  both windows remember where the player put the panel")
 
+-- Classic has no world map quest log: the log is a window of its own, and the
+-- panel has to sit beside that instead of falling back to the middle of the
+-- screen. It shares the log's remembered position, so a player moving between
+-- games does not have to place it twice.
+local classicShown = false
+QuestLogFrame = node()
+rawset(QuestLogFrame, "IsShown", function() return classicShown end)
+rawset(QuestLogFrame, "GetName", function() return "QuestLogFrame" end)
+questShown, mapShown, classicShown = false, false, true
+WordHunterWoWENPanelDB.pos = nil   -- a player who has not placed it yet
+events.fn(nil, "QUEST_DETAIL")
+assert(points[#points] == "TOPLEFT of QuestLogFrame",
+       "on Classic the panel should open beside the quest log window, got: " .. points[#points])
+print("  Classic's own quest log window is anchored to as well")
+
 print("standalone: all assertions passed")
+
+-- A Classic record carries a title and an objective and no opening text at all,
+-- because the source has none. Left unexplained, a single objective line under a
+-- paragraph of German reads as though the translation had been cut short.
+WordHunterWoW_QuestEN[999001] = {
+  title = "Wanted: Hogger",
+  description = "",
+  objectives = "Bring Hogger's Huge Fang to Marshal Dughan in Goldshire.",
+}
+GetQuestID = function() return 999001 end
+questShown, mapShown, classicShown = true, false, false
+texts = {}
+events.fn(nil, "QUEST_DETAIL")
+local classicBody = table.concat(texts, "\n")
+assert(classicBody:find("Huge Fang", 1, true), "the objective should still be shown")
+assert(classicBody:find("No English opening text", 1, true),
+       "a record with no opening text must say so: " .. classicBody:sub(1, 160))
+-- and a Retail record, which does have opening text, must not carry that notice
+GetQuestID = function() return 184 end
+texts = {}
+events.fn(nil, "QUEST_DETAIL")
+assert(not table.concat(texts, "\n"):find("No English opening text", 1, true),
+       "a full record must not claim its opening text is missing")
+print("  a quest with no opening text says so instead of looking truncated")

@@ -95,7 +95,13 @@ local function usable(value)
 end
 ENPanelNames.Usable = usable
 
+-- Adding a line and calling Show() can put the tooltip back through the very
+-- hook that got us here on the older script-based path, and a tooltip that
+-- appends to itself grows without end. One flag stops that for good.
+local appending = false
+
 local function appendName(tooltip, kind, id)
+  if appending then return end
   if not enabled() or clientIsEnglish() then return end
   local english = ENPanelNames.Get(kind, id)
   if not english or english == "" then return end
@@ -107,6 +113,7 @@ local function appendName(tooltip, kind, id)
   local repeated = usable(current) and current == english
   local description = ENPanelNames.GetDescription(kind, id)
   if repeated and not description then return end
+  appending = true
   -- A blank line first. Without it the English runs straight on from the German
   -- and the tooltip reads as one confused paragraph in two languages.
   tooltip:AddLine(" ")
@@ -120,6 +127,7 @@ local function appendName(tooltip, kind, id)
     tooltip:AddLine(description, 1.00, 0.82, 0.30, true)
   end
   tooltip:Show()
+  appending = false
 end
 ENPanelNames.AppendName = appendName
 
@@ -131,6 +139,38 @@ local function npcIdFromGuid(guid)
   return tonumber(id)
 end
 ENPanelNames.NpcIdFromGuid = npcIdFromGuid
+
+-- Classic has no TooltipDataProcessor: a tooltip announces what it is showing
+-- through its own scripts, and what it is showing has to be read back off it
+-- rather than handed over. Retail keeps the path above -- this is only reached
+-- when the newer API is genuinely absent, so a client that has both is
+-- unaffected.
+local function hookTooltipsClassic()
+  local tooltips = { GameTooltip, ItemRefTooltip }
+  local hookedAny = false
+  for _, tooltip in ipairs(tooltips) do
+    if type(tooltip) == "table" and type(tooltip.HookScript) == "function" then
+      hookedAny = true
+      tooltip:HookScript("OnTooltipSetItem", function(self)
+        local _, link = self:GetItem()
+        if not usable(link) or type(link) ~= "string" then return end
+        local id = tonumber(link:match("item:(%d+)"))
+        if id then appendName(self, "item", id) end
+      end)
+      tooltip:HookScript("OnTooltipSetSpell", function(self)
+        local _, id = self:GetSpell()
+        if usable(id) and type(id) == "number" then appendName(self, "spell", id) end
+      end)
+      tooltip:HookScript("OnTooltipSetUnit", function(self)
+        local _, unit = self:GetUnit()
+        if not usable(unit) then return end
+        local guid = UnitGUID and UnitGUID(unit or "mouseover")
+        if usable(guid) then appendName(self, "npc", npcIdFromGuid(guid)) end
+      end)
+    end
+  end
+  return hookedAny
+end
 
 local function hookTooltips()
   if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and Enum.TooltipDataType then
@@ -152,7 +192,7 @@ local function hookTooltips()
     end)
     return true
   end
-  return false
+  return hookTooltipsClassic()
 end
 
 local events = CreateFrame("Frame")

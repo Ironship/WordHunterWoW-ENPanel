@@ -45,3 +45,21 @@ python Tools/build_names_lua.py --kind spell --desc --out Data
 ```
 
 Commit the generated `Data/*.lua`. Do not commit `Data/cache/`.
+
+## Classic Era and Season of Discovery
+
+Blizzard's Game Data API has no quest endpoint for Classic at all, so the
+Classic quest data is not fetched the way the Retail data is. It is extracted
+from a local quest database:
+
+```
+lua Tools/extract_classic_quests.lua <db.lua> Data/cache/classic/quests_en.jsonl <locale.lua> deDE
+python Tools/build_quest_lua.py --cache Data/cache/classic/quests_en.jsonl --out Data/Classic --chunk 1000
+```
+
+Classic quests carry a title and an objective line but no offer text, because
+the source has none. The panel shows what exists and does not invent the rest.
+
+## Licence
+
+GPL v3 — see `LICENSE`, and `NOTICE` for the attribution the licence requires.

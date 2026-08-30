@@ -10,6 +10,7 @@ optional addon and register themselves when present.
     python Tools/build_names_lua.py --kind item     --out ../WordHunterWoW-ENPanel-Items/Data --chunk 40000
 """
 import argparse, json, pathlib, sys
+from products import PRODUCTS, cache_path
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 VARS = {"item": "WordHunterWoW_ENNames_Item",
@@ -28,6 +29,8 @@ def quote(value):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--kind", choices=VARS, required=True)
+    ap.add_argument("--product", default="retail", choices=sorted(PRODUCTS),
+                    help="which game's cache to read")
     ap.add_argument("--out", required=True, help="Data directory to write into")
     ap.add_argument("--chunk", type=int, default=0, help="split into files of N entries")
     ap.add_argument("--desc", action="store_true",
@@ -36,8 +39,8 @@ def main():
 
     if args.desc and args.kind not in DESC_VARS:
         sys.exit(f"no descriptions exist for {args.kind}")
-    src = ROOT / (f"Data/cache/desc_{args.kind}.jsonl" if args.desc
-                  else f"Data/cache/names_{args.kind}.jsonl")
+    src = cache_path(ROOT / "Data/cache", args.product,
+                     f"desc_{args.kind}.jsonl" if args.desc else f"names_{args.kind}.jsonl")
     rows = []
     for line in src.read_text(encoding="utf-8").splitlines():
         if not line.strip():
