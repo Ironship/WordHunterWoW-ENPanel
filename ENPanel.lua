@@ -254,6 +254,29 @@ local function ensureFrame()
   frame.text:SetJustifyH("LEFT")
   frame.text:SetJustifyV("TOP")
   frame.text:SetWordWrap(true)
+
+  -- Size. The whole window is scaled rather than its font strings one by one:
+  -- SetScale takes the title, the text and the scroll bar with it, and nothing
+  -- has to know which fields exist.
+  --
+  -- The base addon keeps every size in one settings page, so this reads its
+  -- value when it is there. That is a plain read of a global the other addon
+  -- happens to have saved -- no dependency, no load order -- and this addon
+  -- still works on its own with its own remembered size.
+  function frame.ApplyTextScale()
+    local scale
+    local base = _G.WordHunterWoWDB
+    if type(base) == "table" and type(base.settings) == "table" then
+      local v = base.settings.enPanelTextScale
+      if type(v) == "number" and v >= 0.8 and v <= 2.0 then scale = v end
+    end
+    if not scale and type(db) == "table" then
+      local v = db.scale
+      if type(v) == "number" and v >= 0.8 and v <= 2.0 then scale = v end
+    end
+    if frame.SetScale then frame:SetScale(scale or 1.0) end
+  end
+  frame.ApplyTextScale()
   frame:Hide()
   return frame
 end
@@ -291,17 +314,24 @@ local function showQuest(questId)
     -- Red, and on its own line: it is a warning about the text underneath, not a
     -- part of it. Fall back to a fixed red if the base addon is absent or is an
     -- older version that has no caveat colour.
+    --
+    -- Placed under the text rather than over it. Above, it was the first thing
+    -- read on every quest that has one, standing between the reader and what
+    -- they opened the panel for.
     local color = Addon and Addon.COLORS and Addon.COLORS.caveat
     local hex = color
       and string.format("%02x%02x%02x", color[1] * 255, color[2] * 255, color[3] * 255)
       or "ff6b6b"
-    body = "|cff" .. hex .. caveat .. "|r" .. (body ~= "" and "\n\n" or "") .. body
+    body = body .. (body ~= "" and "\n\n" or "") .. "|cff" .. hex .. caveat .. "|r"
   end
   local f = ensureFrame()
   applyTheme(f)
   anchorFrame()
   f.title:SetText(title or ("English quest #" .. questId))
   f.text:SetText(body or "English text is not available for this quest.")
+  -- Re-applied on each quest: the player may have moved the slider since the
+  -- last one, and the panel is only rebuilt once.
+  if f.ApplyTextScale then f.ApplyTextScale() end
   layoutContent()
   f:Show()
   f:Raise()
