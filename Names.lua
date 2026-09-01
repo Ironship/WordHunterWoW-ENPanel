@@ -113,20 +113,25 @@ local function appendName(tooltip, kind, id)
   local repeated = usable(current) and current == english
   local description = ENPanelNames.GetDescription(kind, id)
   if repeated and not description then return end
+  -- The latch is released whatever happens below. Without that, one error in a
+  -- single tooltip left it stuck on and every later tooltip in the session
+  -- silently skipped its English line.
   appending = true
-  -- A blank line first. Without it the English runs straight on from the German
-  -- and the tooltip reads as one confused paragraph in two languages.
-  tooltip:AddLine(" ")
-  if not repeated then
-    tooltip:AddDoubleLine(LABEL, english, 0.55, 0.62, 0.78, 1.00, 0.82, 0.30)
-  end
-  if description then
-    -- Wrapped, and in the gold the game uses for an ability's effect text, so it
-    -- reads as the English half of what is already above it rather than as a
-    -- separate addon shouting.
-    tooltip:AddLine(description, 1.00, 0.82, 0.30, true)
-  end
-  tooltip:Show()
+  pcall(function()
+    -- A blank line first. Without it the English runs straight on from the German
+    -- and the tooltip reads as one confused paragraph in two languages.
+    tooltip:AddLine(" ")
+    if not repeated then
+      tooltip:AddDoubleLine(LABEL, english, 0.55, 0.62, 0.78, 1.00, 0.82, 0.30)
+    end
+    if type(description) == "string" then
+      -- Wrapped, and in the gold the game uses for an ability's effect text, so
+      -- it reads as the English half of what is already above it rather than as
+      -- a separate addon shouting.
+      tooltip:AddLine(description, 1.00, 0.82, 0.30, true)
+    end
+    tooltip:Show()
+  end)
   appending = false
 end
 ENPanelNames.AppendName = appendName
@@ -177,10 +182,15 @@ local function hookTooltips()
     TooltipDataProcessor.AddTooltipPostCall(TooltipDataProcessor.AllTypes, function(tooltip, data)
       if tooltip ~= GameTooltip and tooltip ~= ItemRefTooltip then return end
       if not data or not data.type or not data.id then return end
+      -- Same gate as the Unit branch below. An id Blizzard marks secret raises
+      -- as soon as tonumber touches it, and from that moment the addon is
+      -- tainted and everything it does stops working. The Classic path already
+      -- guards its spell id; this is the branch that runs on the client which
+      -- actually has secret values.
       if data.type == Enum.TooltipDataType.Item then
-        appendName(tooltip, "item", data.id)
+        if usable(data.id) then appendName(tooltip, "item", data.id) end
       elseif data.type == Enum.TooltipDataType.Spell then
-        appendName(tooltip, "spell", data.id)
+        if usable(data.id) then appendName(tooltip, "spell", data.id) end
       elseif data.type == Enum.TooltipDataType.Unit then
         -- data.id is a unit token here, not a creature id; the guid carries it.
         -- The guid is often secret, and splitting one would taint us.

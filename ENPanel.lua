@@ -212,7 +212,15 @@ local function ensureFrame()
   -- been visible on its own.
   anchorFrame()
   applyTheme(frame)
-  if WordHunterWoW_Addon then WordHunterWoW_Addon.enPanel = frame end
+  if WordHunterWoW_Addon then
+    WordHunterWoW_Addon.enPanel = frame
+    -- Published as soon as the frame exists. The base addon's size slider looks
+    -- this up when it moves, and the frame is only built on the first quest --
+    -- so a player who opened the settings first found the slider did nothing.
+    if WordHunterWoW_Addon.ApplyWindowScale then
+      WordHunterWoW_Addon.ApplyWindowScale("enPanelTextScale")
+    end
+  end
   if WordHunterWoW_Addon and WordHunterWoW_Addon.MakeResizable then
     WordHunterWoW_Addon.MakeResizable(frame, "enPanel", 280, 220, 700, 800)
   else
@@ -326,12 +334,13 @@ local function showQuest(questId)
   end
   local f = ensureFrame()
   applyTheme(f)
+  -- Size before position. SetScale reinterprets the anchor offsets, so scaling
+  -- after anchoring moved the window away from where it was just placed.
+  if f.ApplyTextScale then f.ApplyTextScale() end
   anchorFrame()
   f.title:SetText(title or ("English quest #" .. questId))
   f.text:SetText(body or "English text is not available for this quest.")
-  -- Re-applied on each quest: the player may have moved the slider since the
-  -- last one, and the panel is only rebuilt once.
-  if f.ApplyTextScale then f.ApplyTextScale() end
+
   layoutContent()
   f:Show()
   f:Raise()
