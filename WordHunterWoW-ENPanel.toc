@@ -3,7 +3,7 @@
 ## Notes: English quest text while you play in another language, plus spell, NPC and item tooltips on Retail. Works on its own.
 ## IconTexture: Interface\AddOns\WordHunterWoW-ENPanel\icon
 ## Author: Ironship
-## Version: 1.4.1
+## Version: 1.5.0
 ## SavedVariables: WordHunterWoWENPanelDB
 
 Data/QuestEN_000.lua
@@ -37,6 +37,25 @@ Data/QuestEN_027.lua
 Data/QuestEN_028.lua
 Data/QuestEN_029.lua
 Data/QuestEN_030.lua
+Data/QuestEN_031.lua
+Data/QuestEN_032.lua
+Data/QuestEN_033.lua
+Data/QuestEN_034.lua
+Data/QuestEN_035.lua
+Data/QuestEN_036.lua
+Data/QuestEN_037.lua
+Data/QuestEN_038.lua
+Data/QuestEN_039.lua
+Data/QuestEN_040.lua
+Data/QuestEN_041.lua
+Data/QuestEN_042.lua
+Data/QuestEN_043.lua
+Data/QuestEN_044.lua
+Data/QuestEN_045.lua
+Data/QuestEN_046.lua
+Data/QuestEN_047.lua
+Data/QuestEN_048.lua
+Data/QuestEN_049.lua
 
 Data/NamesSpell.lua
 Data/NamesNPC.lua

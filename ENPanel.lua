@@ -46,17 +46,27 @@ local function applyTheme(target)
   end
 end
 
-local function questText(questId)
+local function questText(questId, passage)
   local entry = WordHunterWoW_QuestEN and WordHunterWoW_QuestEN[tonumber(questId)]
   if not entry then return nil end
   local title = entry.title or ""
   local description = entry.description or ""
   local objectives = entry.objectives or ""
+  -- The player is reading the progress or hand-in line, and this record has the
+  -- English for it. Show that, not the opening text: they are different
+  -- passages, and until now the panel could only apologise for the difference.
+  if passage == "progress" and (entry.progress or "") ~= "" then
+    return title, entry.progress, true, true
+  end
+  -- "reward" is what both this addon and the base call the hand-in frame.
+  if passage == "reward" and (entry.completion or "") ~= "" then
+    return title, entry.completion, true, true
+  end
   local body = description
   if objectives ~= "" then body = body .. (body ~= "" and "\n\n" or "") .. objectives end
   -- Whether this record has the quest's opening text at all. Retail records
   -- always do; Classic records never do, because the source has none.
-  return title, body, description ~= ""
+  return title, body, description ~= "", false
 end
 
 -- A Blizzard global can be missing entirely on one game and be something other
@@ -297,15 +307,16 @@ local function showQuest(questId)
   end
   questId = questId or currentQuestId()
   if not questId or questId == 0 then return end
-  local title, body, hasOpeningText = questText(questId)
-  -- The shipped data holds only the quest's opening text and objectives, because
-  -- that is all Blizzard's quest API publishes. When the NPC is showing the
-  -- progress or hand-in lines instead, say so rather than passing off the opening
-  -- text as a translation of what the player is reading.
   local lastQuest = Addon and Addon.lastQuest
   local passage = (lastQuest and lastQuest.passage) or lastPassage
+  local title, body, hasOpeningText, matchesPassage = questText(questId, passage)
+  -- Blizzard's quest API publishes only the opening text and objectives, so for
+  -- a long time that was all this panel had. Where the English for the progress
+  -- or hand-in line is now known, matchesPassage is true and the panel shows the
+  -- passage the player is actually reading. Where it is not, say so rather than
+  -- passing off the opening text as a translation of something else.
   local caveat
-  if body and passage and passage ~= "offer" then
+  if body and passage and passage ~= "offer" and not matchesPassage then
     -- Addon is nil whenever the base addon is absent or switched off, which is
     -- the normal case now that this works on its own. Until lastPassage existed
     -- this branch could only be reached when the base had supplied the passage,

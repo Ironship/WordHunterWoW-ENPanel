@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import argparse, json, pathlib
+import argparse, json, pathlib, re
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
@@ -22,19 +22,37 @@ def main():
         name = f"QuestEN_{start // args.chunk:03d}.lua"; names.append(name)
         lines = ["WordHunterWoW_QuestEN = WordHunterWoW_QuestEN or {}"]
         for qid, r in ordered[start:start + args.chunk]:
-            lines.append(f"WordHunterWoW_QuestEN[{qid}] = {{ title = {quote(r.get('title'))}, description = {quote(r.get('description'))}, objectives = {quote(r.get('objectives'))} }}")
+            fields = [f"title = {quote(r.get('title'))}",
+                      f"description = {quote(r.get('description'))}",
+                      f"objectives = {quote(r.get('objectives'))}"]
+            # Only written when present. Blizzard's API publishes neither, so on
+            # most records these are absent and the panel says so rather than
+            # showing the opening text in their place.
+            for field in ("progress", "completion"):
+                value = (r.get(field) or "").strip()
+                if value:
+                    fields.append(f"{field} = {quote(value)}")
+            lines.append(f"WordHunterWoW_QuestEN[{qid}] = {{ " + ", ".join(fields) + " }")
         (data_dir / name).write_text("\n".join(lines) + "\n", encoding="utf-8")
     if not args.out:
+        # Only the QuestEN block is regenerated. Everything else the manifest
+        # loads -- Data/NamesSpell.lua, Data/NamesNPC.lua, Data/DescSpell.lua,
+        # Names.lua -- is kept where it is. An earlier version rebuilt the whole
+        # file from the header alone and dropped all four, which silently takes
+        # the spell, NPC and item tooltips out of the addon.
         toc = ROOT / "WordHunterWoW-ENPanel.toc"
-        header = []
+        quest = re.compile(r"^Data/QuestEN_\d+\.lua$")
+        out, written = [], False
         for line in toc.read_text(encoding="utf-8").splitlines():
-            if line.startswith("##") or line.strip() == "":
-                header.append(line)
-            else:
-                break
-        while header and header[-1].strip() == "":
-            header.pop()
-        toc.write_text("\n".join(header) + "\n\n" + "\n".join(f"Data/{n}" for n in names) + "\nENPanel.lua\n", encoding="utf-8")
+            if quest.match(line.strip()):
+                if not written:
+                    out.extend(f"Data/{n}" for n in names)
+                    written = True
+                continue
+            out.append(line)
+        if not written:
+            raise SystemExit("the manifest lists no QuestEN file; refusing to guess where the block goes")
+        toc.write_text("\n".join(out) + "\n", encoding="utf-8")
     print(f"generated {len(entries)} quests in {len(names)} chunks")
 
 if __name__ == "__main__": main()

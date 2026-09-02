@@ -97,22 +97,45 @@ local offer = table.concat(texts, "\n")
 assert(offer:find("deed", 1, true), "offer text missing: " .. offer:sub(1, 120))
 print("  quest offer shown")
 
--- hand-in: this is the call that used to throw
+-- Hand-in. Blizzard's API publishes no English for this passage, so for a long
+-- time the panel could only show the opening text and apologise for it. The
+-- records now carry the hand-in line where it is known, and quest 184 is one
+-- that does: the panel must show that line, and must not apologise.
 local before = shows
+texts = {}
 events.fn(nil, "QUEST_COMPLETE")
 assert(shows > before, "the panel never showed at hand-in")
 local body = table.concat(texts, "\n")
-assert(body:find("Blizzard publishes no English text", 1, true),
-       "hand-in should carry the caveat")
-assert(body:find("|cffff6b6b", 1, true),
-       "with no base addon the caveat colour must fall back to a fixed red")
-print("  hand-in shown, caveat present, colour fell back")
+assert(not body:find("Blizzard publishes no English text", 1, true),
+       "a record that has the hand-in line must not carry the caveat")
+assert(body:find(WordHunterWoW_QuestEN[184].completion:sub(1, 30), 1, true),
+       "hand-in should show the hand-in line, got: " .. body:sub(1, 160))
+print("  hand-in shown from its own text, no caveat")
 
--- progress goes down the same branch
+-- Progress goes down the same path.
 before = shows
+texts = {}
 events.fn(nil, "QUEST_PROGRESS")
 assert(shows > before, "the panel never showed at progress")
-print("  progress shown")
+body = table.concat(texts, "\n")
+assert(not body:find("Blizzard publishes no English text", 1, true),
+       "a record that has the progress line must not carry the caveat")
+print("  progress shown from its own text")
+
+-- A record without the hand-in line still has to say so, in red, and fall back
+-- to the opening text rather than showing nothing.
+GetQuestID = function() return 1 end
+texts = {}
+before = shows
+events.fn(nil, "QUEST_COMPLETE")
+assert(shows > before, "the panel never showed for the quest without a hand-in line")
+body = table.concat(texts, "\n")
+assert(body:find("Blizzard publishes no English text", 1, true),
+       "a record with no hand-in line must still carry the caveat")
+assert(body:find("|cffff6b6b", 1, true),
+       "with no base addon the caveat colour must fall back to a fixed red")
+print("  quest without a hand-in line still caveated, colour fell back")
+GetQuestID = function() return 184 end
 
 -- Without OptionalDeps the base addon can load after this one. The integration
 -- must attach when that happens, not only when this addon loads first.
