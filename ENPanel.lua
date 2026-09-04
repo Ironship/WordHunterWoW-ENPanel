@@ -46,21 +46,27 @@ local function applyTheme(target)
   end
 end
 
+local function expandTokens(text)
+  text = tostring(text or "")
+  return (text:gsub("{name}", "<name>"):gsub("{class}", "<class>")
+    :gsub("{race}", "<race>"):gsub("{sex}", "<sex>"))
+end
+
 local function questText(questId, passage)
   local entry = WordHunterWoW_QuestEN and WordHunterWoW_QuestEN[tonumber(questId)]
   if not entry then return nil end
-  local title = entry.title or ""
-  local description = entry.description or ""
-  local objectives = entry.objectives or ""
+  local title = expandTokens(entry.title or "")
+  local description = expandTokens(entry.description or "")
+  local objectives = expandTokens(entry.objectives or "")
   -- The player is reading the progress or hand-in line, and this record has the
   -- English for it. Show that, not the opening text: they are different
   -- passages, and until now the panel could only apologise for the difference.
   if passage == "progress" and (entry.progress or "") ~= "" then
-    return title, entry.progress, true, true
+    return title, expandTokens(entry.progress), true, true
   end
   -- "reward" is what both this addon and the base call the hand-in frame.
   if passage == "reward" and (entry.completion or "") ~= "" then
-    return title, entry.completion, true, true
+    return title, expandTokens(entry.completion), true, true
   end
   local body = description
   if objectives ~= "" then body = body .. (body ~= "" and "\n\n" or "") .. objectives end
@@ -321,8 +327,15 @@ local function showQuest(questId)
     -- the normal case now that this works on its own. Until lastPassage existed
     -- this branch could only be reached when the base had supplied the passage,
     -- so it was safe by accident; it is not any more.
-    caveat = (Addon and Addon.LABELS and Addon.LABELS.enOfferOnly)
-      or "[Blizzard publishes no English text for this part of a quest. Showing the quest's opening text instead.]"
+    --
+    -- Classic records have no opening text, so this branch used to claim it was
+    -- showing the opening while actually showing the objective.
+    if hasOpeningText == false then
+      caveat = "[No English opening text exists for this quest. Showing its objective.]"
+    else
+      caveat = (Addon and Addon.LABELS and Addon.LABELS.enOfferOnly)
+        or "[Blizzard publishes no English text for this part of a quest. Showing the quest's opening text instead.]"
+    end
   elseif body and hasOpeningText == false then
     -- A Classic record has the title and the objective and nothing else. Left
     -- unexplained, a one-line objective under a paragraph of German reads as if
@@ -405,6 +418,10 @@ end
 local function hookBaseAddon()
   local Addon = WordHunterWoW_Addon
   if not Addon then return end
+  if frame then
+    Addon.enPanel = frame
+    if Addon.ApplyWindowScale then Addon.ApplyWindowScale("enPanelTextScale") end
+  end
   Addon.OnIntegratedLayoutChanged = function(integrated)
     if integrated then
       if frame then frame:Hide() end

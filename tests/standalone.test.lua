@@ -216,3 +216,15 @@ events.fn(nil, "QUEST_DETAIL")
 assert(not table.concat(texts, "\n"):find("No English opening text", 1, true),
        "a full record must not claim its opening text is missing")
 print("  a quest with no opening text says so instead of looking truncated")
+
+-- Progress on a Classic record used to claim it was showing the opening text
+-- while actually showing the objective.
+GetQuestID = function() return 999001 end
+texts = {}
+events.fn(nil, "QUEST_PROGRESS")
+local classicProgress = table.concat(texts, "\n")
+assert(classicProgress:find("Huge Fang", 1, true), "progress still shows the objective")
+assert(classicProgress:find("Showing its objective", 1, true),
+       "Classic progress must not claim it is showing the opening: " .. classicProgress:sub(1, 200))
+assert(not classicProgress:find("opening text instead", 1, true),
+       "must not use the Retail missing-passage wording on a Classic record")

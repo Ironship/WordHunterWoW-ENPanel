@@ -1,9 +1,9 @@
 ## Interface: 11509
 ## Title: QuestWordHunter - English Quest Panel
-## Notes: English quest text while you play in another language, plus spell, NPC and item tooltips on Retail. Works on its own.
+## Notes: English quest text while you play in another language, plus item tooltips when the item pack is installed. Works on its own.
 ## IconTexture: Interface\AddOns\WordHunterWoW-ENPanel\icon
 ## Author: Ironship
-## Version: 1.5.1
+## Version: 1.5.2
 ## SavedVariables: WordHunterWoWENPanelDB
 
 Data/Classic/QuestEN_000.lua

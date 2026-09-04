@@ -12,10 +12,11 @@
 
 local locale = "deDE"
 GetLocale = function() return locale end
+local unpack = rawget(_G, "unpack") or table.unpack
 strsplit = function(sep, s)
   local out = {}
   for piece in (s .. sep):gmatch("([^" .. sep .. "]*)" .. sep) do out[#out + 1] = piece end
-  return table.unpack(out)
+  return unpack(out)
 end
 UnitGUID = function(unit)
   return unit == "mouseover" and "Creature-0-4379-0-27-30-000082EF89" or nil
@@ -41,7 +42,7 @@ local function makeTooltip(name)
     if self.reentrant then self:Fire(self.reentrant) end
   end
   function tt:GetItem() return self.itemName, self.itemLink end
-  function tt:GetSpell() return self.spellName, self.spellId end
+  function tt:GetSpell() return self.spellName, self.spellRank, self.spellId end
   function tt:GetUnit() return self.unitName, self.unitToken end
   _G[name .. "TextLeft1"] = { GetText = function() return "irgendwas" end }
   return tt
@@ -71,7 +72,7 @@ local function reset(tt) tt.lines, tt.shown, tt.reentrant = {}, 0, nil end
 
 -- spell -----------------------------------------------------------------------
 reset(GameTooltip)
-GameTooltip.spellName, GameTooltip.spellId = "Feuerball", 133
+GameTooltip.spellName, GameTooltip.spellRank, GameTooltip.spellId = "Feuerball", "Rank 1", 133
 GameTooltip:Fire("OnTooltipSetSpell")
 assert(GameTooltip.lines[1] == " ", "a blank line must come first")
 assert(GameTooltip.lines[2] == "English = Fireball", "spell: " .. tostring(GameTooltip.lines[2]))

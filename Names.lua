@@ -163,7 +163,10 @@ local function hookTooltipsClassic()
         if id then appendName(self, "item", id) end
       end)
       tooltip:HookScript("OnTooltipSetSpell", function(self)
-        local _, id = self:GetSpell()
+        -- Classic returns name, rank, id. Retail's script path (if it ever
+        -- lands here) returns name, id. Take the last number.
+        local a, b, c = self:GetSpell()
+        local id = type(c) == "number" and c or b
         if usable(id) and type(id) == "number" then appendName(self, "spell", id) end
       end)
       tooltip:HookScript("OnTooltipSetUnit", function(self)
@@ -181,19 +184,16 @@ local function hookTooltips()
   if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum and Enum.TooltipDataType then
     TooltipDataProcessor.AddTooltipPostCall(TooltipDataProcessor.AllTypes, function(tooltip, data)
       if tooltip ~= GameTooltip and tooltip ~= ItemRefTooltip then return end
-      if not data or not data.type or not data.id then return end
-      -- Same gate as the Unit branch below. An id Blizzard marks secret raises
-      -- as soon as tonumber touches it, and from that moment the addon is
-      -- tainted and everything it does stops working. The Classic path already
-      -- guards its spell id; this is the branch that runs on the client which
-      -- actually has secret values.
+      if not data or not usable(data.type) then return end
+      -- Truthiness on a secret id raises and taints the addon. Ask first.
       if data.type == Enum.TooltipDataType.Item then
         if usable(data.id) then appendName(tooltip, "item", data.id) end
       elseif data.type == Enum.TooltipDataType.Spell then
         if usable(data.id) then appendName(tooltip, "spell", data.id) end
       elseif data.type == Enum.TooltipDataType.Unit then
         -- data.id is a unit token here, not a creature id; the guid carries it.
-        -- The guid is often secret, and splitting one would taint us.
+        -- Both the token and the guid can be secret.
+        if not usable(data.id) then return end
         local guid = UnitGUID and UnitGUID(data.id)
         if usable(guid) then
           appendName(tooltip, "npc", npcIdFromGuid(guid))

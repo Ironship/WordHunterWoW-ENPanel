@@ -9,10 +9,11 @@ Enum = { TooltipDataType = { Item = 1, Spell = 2, Unit = 3, Macro = 4 } }
 
 local locale = "deDE"
 GetLocale = function() return locale end
+local unpack = rawget(_G, "unpack") or table.unpack
 strsplit = function(sep, s)
   local out = {}
   for piece in (s .. sep):gmatch("([^" .. sep .. "]*)" .. sep) do out[#out + 1] = piece end
-  return table.unpack(out)
+  return unpack(out)
 end
 
 local guids = { player = "Creature-0-4379-0-27-30-000082EF89", pet = "Pet-0-1-2-3-4-5-6" }
@@ -164,6 +165,15 @@ assert(ok, "a secret guid must not raise: " .. tostring(err))
 assert(asked.guid, "the unit guid was used without checking whether it is secret")
 assert(#GameTooltip.lines == 0, "a secret guid should add nothing")
 print("  secret unit guid guarded")
+
+asked = {}
+canaccessvalue = function(v) if rawequal(v, SECRET) then asked.id = true return false end return true end
+reset(GameTooltip)
+ok, err = pcall(hook, GameTooltip, { type = 2, id = SECRET })
+assert(ok, "a secret spell id must not raise: " .. tostring(err))
+assert(asked.id, "the spell id was used without checking whether it is secret")
+assert(#GameTooltip.lines == 0, "a secret id should add nothing")
+print("  secret data.id guarded")
 
 UnitGUID = function(unit) return guids[unit] end
 issecretvalue, canaccessvalue = nil, nil

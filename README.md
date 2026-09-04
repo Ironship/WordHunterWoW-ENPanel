@@ -8,7 +8,7 @@ The quest you have open appears in English in its own window, next to the origin
 
 ## What you get
 
-- **English quest text** — about 30,000 quests, title and description
+- **English quest text** — 49,041 Retail quests and 4,244 Classic, title and description
 - **English spell names and descriptions** on tooltips — 8,941 spells
 - **English NPC names** on tooltips — 13,500 creatures
 - **English item names** — a separate download, [English Item Names](https://github.com/Ironship/WordHunterWoW-ENPanel-Items), 168,833 items
