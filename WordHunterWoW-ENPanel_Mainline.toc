@@ -6,6 +6,9 @@
 ## Version: 1.5.0
 ## SavedVariables: WordHunterWoWENPanelDB
 
+Data/DescSpell.lua
+Data/NamesNPC.lua
+Data/NamesSpell.lua
 Data/QuestEN_000.lua
 Data/QuestEN_001.lua
 Data/QuestEN_002.lua
@@ -57,9 +60,6 @@ Data/QuestEN_047.lua
 Data/QuestEN_048.lua
 Data/QuestEN_049.lua
 
-Data/NamesSpell.lua
-Data/NamesNPC.lua
-Data/DescSpell.lua
 
 ENPanel.lua
 Names.lua

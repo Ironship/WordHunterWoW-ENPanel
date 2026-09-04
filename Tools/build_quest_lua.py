@@ -40,7 +40,10 @@ def main():
         # Names.lua -- is kept where it is. An earlier version rebuilt the whole
         # file from the header alone and dropped all four, which silently takes
         # the spell, NPC and item tooltips out of the addon.
-        toc = ROOT / "WordHunterWoW-ENPanel.toc"
+        # The Retail manifest is the one that lists these chunks. The Classic
+        # manifest lists Data/Classic and is left alone: its quest text comes
+        # from somewhere else and has its own chunk count.
+        toc = ROOT / "WordHunterWoW-ENPanel_Mainline.toc"
         quest = re.compile(r"^Data/QuestEN_\d+\.lua$")
         out, written = [], False
         for line in toc.read_text(encoding="utf-8").splitlines():
