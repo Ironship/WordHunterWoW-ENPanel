@@ -132,8 +132,8 @@ assert(shows > before, "the panel never showed for the quest without a hand-in l
 body = table.concat(texts, "\n")
 assert(body:find("Blizzard publishes no English text", 1, true),
        "a record with no hand-in line must still carry the caveat")
-assert(body:find("|cffff6b6b", 1, true),
-       "with no base addon the caveat colour must fall back to a fixed red")
+assert(body:find("|cffc2ccdb", 1, true),
+       "standalone caveat must use the readable neutral palette")
 print("  quest without a hand-in line still caveated, colour fell back")
 GetQuestID = function() return 184 end
 

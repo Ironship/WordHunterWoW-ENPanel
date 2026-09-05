@@ -7,6 +7,10 @@ local db
 -- answer is preferred when it is installed, but this addon has to stand on its
 -- own: without it there is nothing to ask.
 local lastPassage = "offer"
+local lastPlainBody
+local lastCaveat
+local lastQuestId
+local displayedPassage
 
 local function layoutContent()
   if not frame then return end
@@ -34,14 +38,14 @@ local function applyTheme(target)
     -- Classic's own frames are all this tooltip skin, and the panel should look
     -- like it belongs beside them. The base addon defaults to the same thing
     -- there, so a player with both installed sees one style, not two.
-    target:SetBackdrop({ bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+    target:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8",
       edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 16,
       tile = true, tileSize = 16, insets = { left = 3, right = 3, top = 3, bottom = 3 } })
-    target:SetBackdropColor(0.04, 0.06, 0.10, 0.94)
+    target:SetBackdropColor(0.04, 0.06, 0.10, 1)
     target:SetBackdropBorderColor(0.22, 0.24, 0.34, 0.95)
   else
     target:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1, insets = { left = 1, right = 1, top = 1, bottom = 1 } })
-    target:SetBackdropColor(0.08, 0.09, 0.13, 0.97)
+    target:SetBackdropColor(0.08, 0.09, 0.13, 1)
     target:SetBackdropBorderColor(0.22, 0.24, 0.34, 0.95)
   end
 end
@@ -305,6 +309,51 @@ local function ensureFrame()
   return frame
 end
 
+-- New and older base addons can both host this panel; standalone uses the
+-- same readable palette without adding a dependency or changing load order.
+local function colorHex(key, fallback)
+  local Addon = WordHunterWoW_Addon
+  if Addon and Addon.COLORS and Addon.COLORS.text and Addon.ColorHex then
+    return Addon.ColorHex(key)
+  end
+  return fallback
+end
+
+local function wrapSentence(body, sentenceIndex, word, occurrence)
+  local Addon = WordHunterWoW_Addon
+  if not body or not Addon or not Addon.SplitSentences then return body end
+  local sentences, spans = Addon.SplitSentences(body)
+  local span = spans and spans[sentenceIndex]
+  if not span then return body end
+  local sentence = sentences[sentenceIndex]
+  local match = word and Addon.MatchEnglishTokenIndexes
+    and Addon.MatchEnglishTokenIndexes(sentence, word, occurrence) or {}
+  local n = 0
+  local sentenceColor = colorHex("enHighlight", "|cffcce8ff")
+  local wordColor = colorHex("enWordHighlight", "|cffffa89c")
+  -- Keep original whitespace and locate by byte span, including when another
+  -- paragraph contains exactly the same English sentence.
+  local colored = sentence:gsub("%S+", function(token)
+    n = n + 1
+    return (match[n] and wordColor or sentenceColor) .. token .. "|r"
+  end)
+  return body:sub(1, span.start - 1) .. colored .. body:sub(span.finish + 1)
+end
+
+local function paintEnglishBody(target, highlightSentence, word, occurrence)
+  local f = target or frame
+  if not f or not f.text then return end
+  local body = lastPlainBody or ""
+  if highlightSentence then body = wrapSentence(body, highlightSentence, word, occurrence) end
+  if lastCaveat then
+    body = body .. (body ~= "" and "\n\n" or "")
+      .. colorHex("caveat", "|cffc2ccdb") .. lastCaveat .. "|r"
+  end
+  f.text:SetTextColor(0.93, 0.94, 0.96)
+  f.text:SetText(body ~= "" and body or "English text is not available for this quest.")
+  layoutContent()
+end
+
 local function showQuest(questId)
   local Addon = WordHunterWoW_Addon
   if Addon and Addon.GetIntegratedLayout and Addon.GetIntegratedLayout() then
@@ -342,20 +391,9 @@ local function showQuest(questId)
     -- the translation had been cut short.
     caveat = "[No English opening text exists for this quest. Showing its objective.]"
   end
-  if caveat then
-    -- Red, and on its own line: it is a warning about the text underneath, not a
-    -- part of it. Fall back to a fixed red if the base addon is absent or is an
-    -- older version that has no caveat colour.
-    --
-    -- Placed under the text rather than over it. Above, it was the first thing
-    -- read on every quest that has one, standing between the reader and what
-    -- they opened the panel for.
-    local color = Addon and Addon.COLORS and Addon.COLORS.caveat
-    local hex = color
-      and string.format("%02x%02x%02x", color[1] * 255, color[2] * 255, color[3] * 255)
-      or "ff6b6b"
-    body = body .. (body ~= "" and "\n\n" or "") .. "|cff" .. hex .. caveat .. "|r"
-  end
+  lastPlainBody = body
+  lastCaveat = caveat
+  lastQuestId, displayedPassage = tonumber(questId), passage
   local f = ensureFrame()
   applyTheme(f)
   -- Size before position. SetScale reinterprets the anchor offsets, so scaling
@@ -363,9 +401,7 @@ local function showQuest(questId)
   if f.ApplyTextScale then f.ApplyTextScale() end
   anchorFrame()
   f.title:SetText(title or ("English quest #" .. questId))
-  f.text:SetText(body or "English text is not available for this quest.")
-
-  layoutContent()
+  paintEnglishBody(f, nil)
   f:Show()
   f:Raise()
 end
@@ -428,6 +464,17 @@ local function hookBaseAddon()
     else
       showQuest()
     end
+  end
+  Addon.OnHighlightEnglishForWord = function(word, quest, deSentenceIndex, wordOccurrence, sentenceOnly)
+    if not frame or not frame:IsShown() then return end
+    if Addon.GetIntegratedLayout and Addon.GetIntegratedLayout() then return end
+    if not Addon.MatchEnglishSentence or not lastPlainBody then return end
+    local index
+    if word and quest and not lastCaveat and tonumber(quest.id) == lastQuestId
+      and (quest.passage or "offer") == (displayedPassage or "offer") then
+      index = Addon.MatchEnglishSentence(quest.text, lastPlainBody, word, deSentenceIndex)
+    end
+    paintEnglishBody(frame, index, not sentenceOnly and word or nil, wordOccurrence)
   end
   if Addon.ApplyIntegratedLayout then Addon.ApplyIntegratedLayout() end
 end

@@ -19,7 +19,7 @@ Playing in English already? The addon stays quiet — there is nothing for it to
 
 Unzip into `_retail_\Interface\AddOns\` and restart the game.
 
-Nothing else is required. If you also install [QuestWordHunter](https://github.com/Ironship/WordHunterWoW), the quest text becomes clickable so you can save words you want to learn, and this panel docks beside it.
+Nothing else is required. If you also install [QuestWordHunter](https://github.com/Ironship/WordHunterWoW), the quest text becomes clickable so you can save words you want to learn, this panel docks beside it, and pointing at a word lights up the English sentence that says the same thing.
 
 ## Good to know
 
