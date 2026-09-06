@@ -319,6 +319,19 @@ local function colorHex(key, fallback)
   return fallback
 end
 
+-- The same arrangement for the words the panel says in its own voice. The base
+-- addon keeps every such string in one table so a translator has one place to
+-- work through, and a player who has both addons should read one set of words
+-- rather than two; standalone -- the ordinary case -- falls back to the English
+-- written here, which is why each caller passes its own fallback rather than
+-- leaving the panel with a blank line where a sentence should be.
+local function label(key, fallback)
+  local Addon = WordHunterWoW_Addon
+  local labels = Addon and Addon.LABELS
+  local value = labels and labels[key]
+  return type(value) == "string" and value or fallback
+end
+
 local function wrapSentence(body, sentenceIndex, word, occurrence)
   local Addon = WordHunterWoW_Addon
   if not body or not Addon or not Addon.SplitSentences then return body end
@@ -371,7 +384,21 @@ local function showQuest(questId)
   -- passage the player is actually reading. Where it is not, say so rather than
   -- passing off the opening text as a translation of something else.
   local caveat
-  if body and passage and passage ~= "offer" and not matchesPassage then
+  -- A record that is a title and nothing else: no opening text, no objective,
+  -- no progress or hand-in line. 9,770 of the 49,041 shipped Retail records are
+  -- exactly that, and 132 of those carry a title that admits it -- <UNUSED 1>,
+  -- DEPRECATED. The other nine and a half thousand read as real quests, which
+  -- is why this needs an answer of its own. Both branches below would name a
+  -- passage that does not exist, and the objective one in particular left the
+  -- reader looking down an empty panel for a line that was never there. Tested
+  -- first, because whether there is anything at all to show settles the
+  -- question before which passage was asked for can matter.
+  --
+  -- An empty string, not nil: nil is a quest this addon has no record of, and
+  -- paintEnglishBody already has its own sentence for that.
+  if body == "" then
+    caveat = label("enNoText", "[No English text exists for this quest beyond its title.]")
+  elseif body and passage and passage ~= "offer" and not matchesPassage then
     -- Addon is nil whenever the base addon is absent or switched off, which is
     -- the normal case now that this works on its own. Until lastPassage existed
     -- this branch could only be reached when the base had supplied the passage,
@@ -380,16 +407,16 @@ local function showQuest(questId)
     -- Classic records have no opening text, so this branch used to claim it was
     -- showing the opening while actually showing the objective.
     if hasOpeningText == false then
-      caveat = "[No English opening text exists for this quest. Showing its objective.]"
+      caveat = label("enNoOffer", "[No English opening text exists for this quest. Showing its objective.]")
     else
-      caveat = (Addon and Addon.LABELS and Addon.LABELS.enOfferOnly)
-        or "[Blizzard publishes no English text for this part of a quest. Showing the quest's opening text instead.]"
+      caveat = label("enOfferOnly",
+        "[Blizzard publishes no English text for this part of a quest. Showing the quest's opening text instead.]")
     end
   elseif body and hasOpeningText == false then
     -- A Classic record has the title and the objective and nothing else. Left
     -- unexplained, a one-line objective under a paragraph of German reads as if
     -- the translation had been cut short.
-    caveat = "[No English opening text exists for this quest. Showing its objective.]"
+    caveat = label("enNoOffer", "[No English opening text exists for this quest. Showing its objective.]")
   end
   lastPlainBody = body
   lastCaveat = caveat
@@ -470,7 +497,13 @@ local function hookBaseAddon()
     if Addon.GetIntegratedLayout and Addon.GetIntegratedLayout() then return end
     if not Addon.MatchEnglishSentence or not lastPlainBody then return end
     local index
-    if word and quest and not lastCaveat and tonumber(quest.id) == lastQuestId
+    -- A word, or a sentence number on its own. The second is how the German
+    -- voiceover asks: it knows which sentence it is speaking and nobody has
+    -- clicked anything, so the English side follows along as the quest is read
+    -- aloud. Everything else about the check is unchanged -- the quest shown
+    -- still has to be the quest asked about.
+    if (word or deSentenceIndex) and quest and not lastCaveat
+      and tonumber(quest.id) == lastQuestId
       and (quest.passage or "offer") == (displayedPassage or "offer") then
       index = Addon.MatchEnglishSentence(quest.text, lastPlainBody, word, deSentenceIndex)
     end
