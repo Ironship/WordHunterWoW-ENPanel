@@ -9,15 +9,30 @@ The quest you have open appears in English in its own window, next to the origin
 ## What you get
 
 - **English quest text** — 49,041 Retail quests and 4,244 Classic, title and description
-- **English spell names and descriptions** on tooltips — 8,941 spells
-- **English NPC names** on tooltips — 13,500 creatures
+- **English spell names and descriptions** on tooltips — 8,941 spells *(Retail only)*
+- **English NPC names** on tooltips — 13,500 creatures *(Retail only)*
 - **English item names** — a separate download, [English Item Names](https://github.com/Ironship/WordHunterWoW-ENPanel-Items), 168,833 items
 
 Playing in English already? The addon stays quiet — there is nothing for it to add.
 
+## On Classic Era
+
+The quest text is there — 4,244 Classic quests, harvested from a Classic client
+and shipped in the Classic Era build.
+
+The spell and NPC tooltips are not. That data is keyed by id and was read from
+Retail, and the two games do not always mean the same thing by the same id:
+Blizzard rewrote abilities across expansions and Classic Era still runs the
+originals. Shipping it anyway would put an English name on a Classic tooltip
+that is sometimes the wrong ability's name, and a wrong name nobody can see is
+wrong about is worse than no name at all. So the Classic Era build loads none
+of it, and these tooltips stay as the game draws them until the data has been
+read from a Classic client too.
+
 ## Install
 
-Unzip into `_retail_\Interface\AddOns\` and restart the game.
+Unzip into `_retail_\Interface\AddOns\` — or `_classic_era_\Interface\AddOns\`
+— and restart the game.
 
 Nothing else is required. If you also install [QuestWordHunter](https://github.com/Ironship/WordHunterWoW), the quest text becomes clickable so you can save words you want to learn, this panel docks beside it, and pointing at a word lights up the English sentence that says the same thing.
 
