@@ -42,7 +42,8 @@ A spell's English description shows Blizzard's standard values, so a damage numb
 
 Some quests have no English text for their progress or hand-in lines, because Blizzard does not publish it. The panel tells you when that happens instead of showing you the wrong passage.
 
-Retail 12.1. All rights reserved.
+Retail 12.1 (interface 120100) and Classic Era 1.15.9 (11509) — one manifest
+each. What the Classic build does and does not carry is set out above.
 
 ## Rebuild (maintainers)
 
