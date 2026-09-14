@@ -245,7 +245,18 @@ local function ensureFrame()
     WordHunterWoW_Addon.MakeResizable(frame, "enPanel", 280, 220, 700, 800)
   else
     frame:SetResizable(true)
-    if frame.SetResizeBounds then frame:SetResizeBounds(280, 220, 700, 800) end
+    if frame.SetResizeBounds then
+      frame:SetResizeBounds(280, 220, 700, 800)
+    else
+      -- Classic has no SetResizeBounds; it is the one call that replaced these
+      -- two. Guarding it without a fallback leaves the window with no limits at
+      -- all there, so it can be dragged down to nothing or out past the screen
+      -- with no way back. The base addon learned this and fixed it in
+      -- Core.lua; this branch -- the standalone one, which is the whole point
+      -- of shipping a Vanilla manifest -- never got the same treatment.
+      if frame.SetMinResize then frame:SetMinResize(280, 220) end
+      if frame.SetMaxResize then frame:SetMaxResize(700, 800) end
+    end
     local handle = CreateFrame("Button", nil, frame)
     handle:SetSize(16, 16)
     handle:SetPoint("BOTTOMRIGHT", -4, 4)
