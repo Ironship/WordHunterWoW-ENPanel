@@ -1,0 +1,17 @@
+## Interface: 11200
+## Title: QuestWordHunter - English Quest Panel
+## Notes: English quest text while you play in another language. Vanilla 1.12 build.
+## Author: Ironship
+## Version: 1.5.3-vanilla
+## SavedVariables: WordHunterWoWENPanelDB
+
+Vanilla.lua
+
+Data\Classic\QuestEN_000.lua
+Data\Classic\QuestEN_001.lua
+Data\Classic\QuestEN_002.lua
+Data\Classic\QuestEN_003.lua
+Data\Classic\QuestEN_004.lua
+
+ENPanel.lua
+Names.lua

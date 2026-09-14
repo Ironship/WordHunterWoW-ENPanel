@@ -1,0 +1,13 @@
+/Tools/keys.env
+/Data/cache/
+/Data/quest_ids.csv
+/release/
+/curseforge/
+*.zip
+.DS_Store
+Thumbs.db
+desktop.ini
+__pycache__/
+*.pyc
+
+.claude/
