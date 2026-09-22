@@ -1,4 +1,5 @@
-local addonName = ...
+local addonName, ns = ...
+ns = ns or {}
 
 local frame
 local hideWatched = {}
@@ -85,8 +86,31 @@ local function isShown(frame)
   return (type(frame) == "table" and type(frame.IsShown) == "function" and frame:IsShown()) and true or false
 end
 
+-- Addons that replace the quest dialogue with a window of their own, by the
+-- global each publishes. They leave Blizzard's QuestFrame hidden for the rest
+-- of the session, so waiting for it to appear waits forever. `child` names the
+-- quest half for the ones whose window serves gossip too. Built on first use,
+-- hence looked up each time rather than remembered.
+--
+-- This panel stands on its own, so it works them out for itself rather than
+-- asking the main addon.
+local DIALOGUE_REPLACEMENTS = {
+  { global = "DUIQuestFrame" },                        -- DialogueUI, Peterodox
+  { global = "LWDialogFrame", child = "QuestFrame" },  -- Lorewalker, AdaptiveX
+}
+
+local function replacementQuestFrame()
+  for _, entry in ipairs(DIALOGUE_REPLACEMENTS) do
+    local frame = _G[entry.global]
+    if isShown(frame) and (not entry.child or isShown(frame[entry.child])) then
+      return frame
+    end
+  end
+  return nil
+end
+
 local function questFrameOpen()
-  return isShown(QuestFrame)
+  return isShown(QuestFrame) or replacementQuestFrame() ~= nil
 end
 
 local function questLogOpen()
@@ -157,6 +181,10 @@ end
 -- of the map -- so each window keeps its own.
 local function currentHost()
   if isShown(QuestFrame) then return "quest", QuestFrame end
+  -- A replacement window stands where the quest dialogue would have been, so it
+  -- shares the position the player set for talking to an NPC.
+  local replacement = replacementQuestFrame()
+  if replacement then return "quest", replacement end
   -- Classic's quest log window stands in for Retail's map here. It is the same
   -- situation from the panel's point of view -- the player is reading the log
   -- rather than talking to an NPC -- so it shares the remembered position and
@@ -381,6 +409,13 @@ end
 local function showQuest(questId)
   local Addon = WordHunterWoW_Addon
   if Addon and Addon.GetIntegratedLayout and Addon.GetIntegratedLayout() then
+    if frame then frame:Hide() end
+    return
+  end
+  -- The same reason, a different window: DialogueUI draws the English inside
+  -- its own quest window once this addon has handed it the text, and two
+  -- copies of one paragraph help nobody.
+  if ns.EnglishShownInDialogue and ns.EnglishShownInDialogue() then
     if frame then frame:Hide() end
     return
   end
