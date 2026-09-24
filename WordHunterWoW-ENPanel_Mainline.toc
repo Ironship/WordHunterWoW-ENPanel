@@ -4,7 +4,6 @@
 ## IconTexture: Interface\AddOns\WordHunterWoW-ENPanel\icon
 ## Author: Ironship
 ## Version: 1.6.3
-## OptionalDeps: DialogueUI
 ## SavedVariables: WordHunterWoWENPanelDB
 
 Data/DescSpell.lua
@@ -64,6 +63,3 @@ Data/QuestEN_049.lua
 
 ENPanel.lua
 Names.lua
-
-# Only does anything when DialogueUI is installed.
-DialogueUI.lua
