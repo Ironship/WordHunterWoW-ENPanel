@@ -74,7 +74,14 @@ python Tools/build_quest_lua.py --cache Data/cache/classic/quests_en.jsonl --out
 ```
 
 Classic quests carry a title and an objective line but no offer text, because
-the source has none. The panel shows what exists and does not invent the rest.
+the source has none. Where the Retail data holds the same quest id, its
+description is copied over by `Tools/backfill_classic.py`, so most Classic
+quests read in full rather than falling back to the objective. It is
+Blizzard's own text, not an invented one -- but Blizzard rewrote many quests
+over the expansions, and where they did the English on screen may be a newer
+telling than the Classic one beside it. Ids with no Retail twin keep the empty
+description, and the panel keeps saying so instead of showing something
+that is not theirs. The panel shows what exists and does not invent the rest.
 
 ## Licence
 
