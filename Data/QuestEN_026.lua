@@ -1,4 +1,13 @@
 WordHunterWoW_QuestEN = WordHunterWoW_QuestEN or {}
+WordHunterWoW_QuestEN[43041] = { title = "Warmongering Combatant's Scaled Armor", description = "", objectives = "" }
+WordHunterWoW_QuestEN[43042] = { title = "Warmongering Combatant's Scaled Armor", description = "", objectives = "" }
+WordHunterWoW_QuestEN[43043] = { title = "Warmongering Combatant's Plate Armor", description = "", objectives = "" }
+WordHunterWoW_QuestEN[43044] = { title = "Warmongering Combatant's Plate Armor", description = "", objectives = "" }
+WordHunterWoW_QuestEN[43045] = { title = "Warmongering Combatant's Satin Armor", description = "", objectives = "" }
+WordHunterWoW_QuestEN[43046] = { title = "Warmongering Combatant's Satin Armor", description = "", objectives = "" }
+WordHunterWoW_QuestEN[43047] = { title = "Warmongering Combatant's Silk Armor", description = "", objectives = "" }
+WordHunterWoW_QuestEN[43048] = { title = "Warmongering Combatant's Silk Armor", description = "", objectives = "" }
+WordHunterWoW_QuestEN[43049] = { title = "Wild Combatant's Felweave Armor", description = "", objectives = "" }
 WordHunterWoW_QuestEN[43050] = { title = "Wild Combatant's Felweave Armor", description = "", objectives = "" }
 WordHunterWoW_QuestEN[43051] = { title = "7.0 Suramar Collapse Scenario - Door 01", description = "", objectives = "" }
 WordHunterWoW_QuestEN[43052] = { title = "7.0 Suramar Collapse Scenario - Door 02", description = "", objectives = "" }
@@ -990,12 +999,3 @@ WordHunterWoW_QuestEN[44092] = { title = "Protect the Home Front", description =
 WordHunterWoW_QuestEN[44093] = { title = "Head 1 Looted", description = "", objectives = "You will receive:\n\nUpon completion of this quest you will gain:" }
 WordHunterWoW_QuestEN[44094] = { title = "Head 2 Looted", description = "", objectives = "You will receive:\n\nUpon completion of this quest you will gain:" }
 WordHunterWoW_QuestEN[44095] = { title = "Head 3 Looted", description = "", objectives = "You will receive:\n\nUpon completion of this quest you will gain:" }
-WordHunterWoW_QuestEN[44096] = { title = "Head 4 Looted", description = "", objectives = "You will receive:\n\nUpon completion of this quest you will gain:" }
-WordHunterWoW_QuestEN[44097] = { title = "Head 5 Looted", description = "", objectives = "You will receive:\n\nUpon completion of this quest you will gain:" }
-WordHunterWoW_QuestEN[44098] = { title = "Recruiting Apprentices", description = "Grand Conjuror Mimic has arrived to aid us in bolstering our numbers. She seeks out the most promising apprentices and trains them very quickly. Her former students are some of the most powerful conjurors in the land!\n\nSpeak to her and recruit some of her apprentices to add to our roster.", objectives = "Speak to Grand Conjuror Mimic.", completion = "Good to see you, <name>. My apprentices are learning rapidly and are ready to serve you." }
-WordHunterWoW_QuestEN[44099] = { title = "A Mutual Friend", description = "It's good to see you are well.\n\nI've been sent by our mutual friend, Calydus. He is eager to speak with you.\n\nPlease return to Dreadscar Rift at your earliest convenience.", objectives = "Return to Calydus within Dreadscar Rift.", completion = "It's so good to see friend once again." }
-WordHunterWoW_QuestEN[44100] = { title = "Proper Introductions", description = "I'm glad I found you. \n\nI have a message from Alonsus Faol.\n\nHe says introductions are in order, and requests your presence within Netherlight Temple at your earliest convenience.", objectives = "Return to Alonsus Faol within Netherlight Temple.", completion = "I see you received my message." }
-WordHunterWoW_QuestEN[44101] = { title = "Supply Dropped", description = "These supplies for the Earthen Ring have not been processed yet. It looks like someone has been rummaging through them and looting whatever can be carried. You have reasons to suspect the Grimtotem tribe, on account of the fact that one of their champions is nearby, visibly pilfering your stuff.\n\nChallenge the Grimtotem to secure your resources!", objectives = "Challenge and defeat the Grimtotem Champion who is raiding your supplies.", progress = "<The Grimtotem Champion snorts derisively at you.>", completion = "Very well, I yield - I yield!\n\nCurse you, <class>, and that weapon of yours. Without it the Grimtotem would've been victorious.\n\nTake your lousy supplies. But we will be back!" }
-WordHunterWoW_QuestEN[44102] = { title = "Azsuna - Treasure 043 - Grey Shoals", description = "", objectives = "" }
-WordHunterWoW_QuestEN[44103] = { title = "Azsuna - Treasure 044 - Felblaze Underwater", description = "", objectives = "" }
-WordHunterWoW_QuestEN[44104] = { title = "Azsuna - Treasure 045 - Ley Ruins 02", description = "", objectives = "" }

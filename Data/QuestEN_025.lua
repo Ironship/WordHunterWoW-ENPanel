@@ -1,4 +1,13 @@
 WordHunterWoW_QuestEN = WordHunterWoW_QuestEN or {}
+WordHunterWoW_QuestEN[41863] = { title = "Vengeance Will Be Ours", description = "Caria lies in the very heart of Legion territory - they'll see our forces immediately if we try to launch an all-out attack.\n\nFailure is not an option.\n\nHowever, if you go alone you might be able to slip by unnoticed long enough to avoid the brunt of the Legion army.\n\nRemember, {name} - this is not a rescue mission. The power of the Aldrachi Warblades could tip the scales of this war in our favor; Allari and her men are expendable if need be.", objectives = "Take the Aldrachi Warblades from Caria Felsoul.", completion = "What of the others? Did they...?\n\nI see. They gave their lives for a worthy cause - the Warblades will change the tide of this war, mark my words." }
+WordHunterWoW_QuestEN[41864] = { title = "Neltharion's Lair: Crystalline Crusher", description = "", objectives = "" }
+WordHunterWoW_QuestEN[41865] = { title = "Neltharion's Lair: Mother of Stone", description = "", objectives = "" }
+WordHunterWoW_QuestEN[41866] = { title = "Neltharion's Lair: Blighted Bat", description = "", objectives = "" }
+WordHunterWoW_QuestEN[41867] = { title = "FLAG - Brann Week 1", description = "", objectives = "" }
+WordHunterWoW_QuestEN[41868] = { title = "FLAG - Brann Week 2", description = "", objectives = "" }
+WordHunterWoW_QuestEN[41869] = { title = "FLAG - Brann Week 3", description = "", objectives = "" }
+WordHunterWoW_QuestEN[41870] = { title = "FLAG - Brann Week 4", description = "", objectives = "" }
+WordHunterWoW_QuestEN[41871] = { title = "FLAG - Brann Week 5", description = "", objectives = "" }
 WordHunterWoW_QuestEN[41873] = { title = "The Mead Master", description = "The vyrkul meadery overlooks the coast in northern Stormheim. Meet me there when you are ready, <name>.You will receive:\n\nUpon completion of this quest you will gain:", objectives = "Speak to Apprentice Meldir in Stormheim." }
 WordHunterWoW_QuestEN[41874] = { title = "Talked to Tyrande to Start Events", description = "", objectives = "" }
 WordHunterWoW_QuestEN[41875] = { title = "Found First Clue", description = "", objectives = "" }
@@ -990,12 +999,3 @@ WordHunterWoW_QuestEN[43037] = { title = "Warmongering Combatant's Ironskin Armo
 WordHunterWoW_QuestEN[43038] = { title = "Warmongering Combatant's Dreadplate Armor", description = "", objectives = "" }
 WordHunterWoW_QuestEN[43039] = { title = "Warmongering Combatant's Dreadplate Armor", description = "", objectives = "" }
 WordHunterWoW_QuestEN[43040] = { title = "DANGER: Valakar the Thirsty", description = "", objectives = "" }
-WordHunterWoW_QuestEN[43041] = { title = "Warmongering Combatant's Scaled Armor", description = "", objectives = "" }
-WordHunterWoW_QuestEN[43042] = { title = "Warmongering Combatant's Scaled Armor", description = "", objectives = "" }
-WordHunterWoW_QuestEN[43043] = { title = "Warmongering Combatant's Plate Armor", description = "", objectives = "" }
-WordHunterWoW_QuestEN[43044] = { title = "Warmongering Combatant's Plate Armor", description = "", objectives = "" }
-WordHunterWoW_QuestEN[43045] = { title = "Warmongering Combatant's Satin Armor", description = "", objectives = "" }
-WordHunterWoW_QuestEN[43046] = { title = "Warmongering Combatant's Satin Armor", description = "", objectives = "" }
-WordHunterWoW_QuestEN[43047] = { title = "Warmongering Combatant's Silk Armor", description = "", objectives = "" }
-WordHunterWoW_QuestEN[43048] = { title = "Warmongering Combatant's Silk Armor", description = "", objectives = "" }
-WordHunterWoW_QuestEN[43049] = { title = "Wild Combatant's Felweave Armor", description = "", objectives = "" }

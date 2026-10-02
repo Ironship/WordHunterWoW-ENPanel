@@ -1,4 +1,13 @@
 WordHunterWoW_QuestEN = WordHunterWoW_QuestEN or {}
+WordHunterWoW_QuestEN[45302] = { title = "7.1.5 Class Hall - Brawlers Missions - Has Completed Any Brawlers Mission with Overmax - Tracking Quest", description = "", objectives = "" }
+WordHunterWoW_QuestEN[45303] = { title = "7.1.5 Class Hall - Special - Brawlers - Fight 03 - Tracking Quest", description = "", objectives = "" }
+WordHunterWoW_QuestEN[45304] = { title = "Attacking the Darkness", description = "Your champions have returned looking somewhat shaken by their encounter with the Shadowmaster.", objectives = "Return to the Brawler's Guild.", completion = "Between you and me I'm glad they won, that guy always creeps me out. Ready for the final challenge?" }
+WordHunterWoW_QuestEN[45305] = { title = "Treasure 057 - East Rock Cliff", description = "", objectives = "" }
+WordHunterWoW_QuestEN[45306] = { title = "Treasure 058 - Purple Ritual Chamber", description = "", objectives = "" }
+WordHunterWoW_QuestEN[45307] = { title = "Claws for Alarm!", description = "", objectives = "" }
+WordHunterWoW_QuestEN[45308] = { title = "Treasure 059 - Northern Night Elf Ruins", description = "", objectives = "" }
+WordHunterWoW_QuestEN[45309] = { title = "7.1.5 Class Hall - Brawlers - Fight 02 - Overmax Reward Credit - Tracking Quest", description = "", objectives = "" }
+WordHunterWoW_QuestEN[45310] = { title = "7.1.5 Class Hall - Brawlers - Fight 03 - Overmax Reward Credit - Tracking Quest", description = "", objectives = "" }
 WordHunterWoW_QuestEN[45311] = { title = "7.1.5 Class Hall - Special - Brawlers - Fight 04 - Tracking Quest", description = "", objectives = "" }
 WordHunterWoW_QuestEN[45312] = { title = "You Beat the Ball of Meat", description = "Your champions return with a scrap of bloody, tangled, and quite smelly hair.", objectives = "Take the scrap of hair to the Brawler's Guild.", completion = "I can't believe you beat him! Meatball was so impressed he now insists he wants to work for you. Hope you don't regret it!" }
 WordHunterWoW_QuestEN[45313] = { title = "7.1.5 Class Hall - Brawlers - Fight 04 - Overmax Reward Credit - Tracking Quest", description = "", objectives = "" }
@@ -990,12 +999,3 @@ WordHunterWoW_QuestEN[46536] = { title = "Vicious Gladiator's Felweave Armor", d
 WordHunterWoW_QuestEN[46537] = { title = "Vicious Gladiator's Leather Armor", description = "", objectives = "" }
 WordHunterWoW_QuestEN[46538] = { title = "Vicious Gladiator's Plate Armor", description = "", objectives = "" }
 WordHunterWoW_QuestEN[46539] = { title = "Vicious Gladiator's Ringmail Armor", description = "", objectives = "" }
-WordHunterWoW_QuestEN[46540] = { title = "Vicious Gladiator's Satin Armor", description = "", objectives = "" }
-WordHunterWoW_QuestEN[46541] = { title = "Vicious Gladiator's Scaled Armor", description = "", objectives = "" }
-WordHunterWoW_QuestEN[46542] = { title = "Vicious Gladiator's Silk Armor", description = "", objectives = "" }
-WordHunterWoW_QuestEN[46543] = { title = "Vicious Gladiator's Weapons", description = "", objectives = "" }
-WordHunterWoW_QuestEN[46544] = { title = "Ruthless Gladiator's Chain Armor", description = "", objectives = "" }
-WordHunterWoW_QuestEN[46545] = { title = "Ruthless Gladiator's Dragonhide Armor", description = "", objectives = "" }
-WordHunterWoW_QuestEN[46546] = { title = "Ruthless Gladiator's Dreadplate Armor", description = "", objectives = "" }
-WordHunterWoW_QuestEN[46547] = { title = "Ruthless Gladiator's Felweave Armor", description = "", objectives = "" }
-WordHunterWoW_QuestEN[46548] = { title = "Ruthless Gladiator's Leather Armor", description = "", objectives = "" }

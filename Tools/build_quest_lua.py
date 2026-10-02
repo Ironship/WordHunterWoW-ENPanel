@@ -33,7 +33,9 @@ def main():
                 if value:
                     fields.append(f"{field} = {quote(value)}")
             lines.append(f"WordHunterWoW_QuestEN[{qid}] = {{ " + ", ".join(fields) + " }")
-        (data_dir / name).write_text("\n".join(lines) + "\n", encoding="utf-8")
+        # Bytes, not text: on Windows a text write turns every newline into
+        # CRLF and the next run diffs all fifty files against the shipped LF.
+        (data_dir / name).write_bytes(("\n".join(lines) + "\n").encode("utf-8"))
     if not args.out:
         # Only the QuestEN block is regenerated. Everything else the manifest
         # loads -- Data/NamesSpell.lua, Data/NamesNPC.lua, Data/DescSpell.lua,
@@ -55,7 +57,7 @@ def main():
             out.append(line)
         if not written:
             raise SystemExit("the manifest lists no QuestEN file; refusing to guess where the block goes")
-        toc.write_text("\n".join(out) + "\n", encoding="utf-8")
+        toc.write_bytes(("\n".join(out) + "\n").encode("utf-8"))
     print(f"generated {len(entries)} quests in {len(names)} chunks")
 
 if __name__ == "__main__": main()

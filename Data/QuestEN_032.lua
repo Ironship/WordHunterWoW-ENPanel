@@ -1,4 +1,13 @@
 WordHunterWoW_QuestEN = WordHunterWoW_QuestEN or {}
+WordHunterWoW_QuestEN[51411] = { title = "Azerite Mining", description = "", objectives = "" }
+WordHunterWoW_QuestEN[51412] = { title = "Azerite Empowerment", description = "", objectives = "" }
+WordHunterWoW_QuestEN[51415] = { title = "Azerite Madness", description = "", objectives = "" }
+WordHunterWoW_QuestEN[51418] = { title = "Xibala", description = "{name}! How's things going over here?\n\nOh. Wow. There's Horde soldiers everywhere. And Zandalari trolls. And hardly any machines at all.\n\nWe should DEFINITELY head back to Xibala, with the dark iron dwarves. It's perfect for our foothold!", objectives = "Use the rowboat in Talanji's Rebuke to travel to Xibala.", completion = "You're <name>, the <race> <class> that Kelsey's been talkin' up? We've heard much about ye, lad." }
+WordHunterWoW_QuestEN[51421] = { title = "Shiver Me Timbers", description = "It seems our resident shadow hunter has managed to seize a small pirate sloop.\n\nWe have sent him to Tiragarde Sound in a search for a foothold, and it seems that he has concocted a plan.\n\nTy'jin has requested your help, personally. Do not keep him waiting.", objectives = "Accompany Shadow Hunter Ty'jin to Tiragarde Sound.", completion = "Welcome ta Tiragarde, boss-mon. Ya ready to be parleyin'?" }
+WordHunterWoW_QuestEN[51422] = { title = "Azerite Madness", description = "", objectives = "" }
+WordHunterWoW_QuestEN[51425] = { title = "There's No Place Like Home", description = "So, the Arathi Highlands. Quite a sprawl, isn't it?\n\nAt some point, you may wish to return to this fair Stromgarde with haste.\n\nMight I offer a suggestion as to how...?", objectives = "Talk to Captain Roderick Brewston", completion = "Should you desire to return with haste, simply use this, yes?" }
+WordHunterWoW_QuestEN[51426] = { title = "Inspection Gadget", description = "Some time ago, a good friend of mine who had a tinker shop in Boralus just stopped all correspondence. With the state of foreign affairs, I wasn't able to look for him myself until recently.\n\nIt's not just him. It seems that all of the gnomes that were living in the city just up and vanished.\n\nI've decided to start my search with these ruins, but the machines here have gone haywire. Could you go get a good magnetic reading on the place?", objectives = "Survey the Rusted Vault.", completion = "This data is astounding! It will take quite a while to go through all of it." }
+WordHunterWoW_QuestEN[51427] = { title = "I Like Turtles", description = "Excellent work, {name}.\n\nPresent the offering to Ai'twen.\n\nHe will accept it and come to our aid.", objectives = "Present the offering to Ai'twen.", progress = "We are patient.  When you are ready.", completion = "An excellent offering.  Let us watch now, and see if this will suffice." }
 WordHunterWoW_QuestEN[51428] = { title = "Azerite Wounds", description = "", objectives = "" }
 WordHunterWoW_QuestEN[51429] = { title = "King Clickyclack", description = "", objectives = "" }
 WordHunterWoW_QuestEN[51430] = { title = "Reverse Tinkering", description = "The sentry bots here are definitely of gnomish make. If the creator had any sort of proper education, each machine should have some sort of serial code on it.\n\nAnd if they've been properly documented, I might be able to use those codes to track that gnome down.\n\nDo you think you could bring a few of them back to me?", objectives = "Gather 4 V-300 serial plates.", progress = "Did you find anything interesting?", completion = "I'll have to send these back to Ironforge and we'll see if they can find anything." }
@@ -990,12 +999,3 @@ WordHunterWoW_QuestEN[52717] = { title = "Valero Needs Help!", description = "",
 WordHunterWoW_QuestEN[52718] = { title = "Valero Needs Help!", description = "", objectives = "" }
 WordHunterWoW_QuestEN[52719] = { title = "Valero Needs Help!", description = "", objectives = "" }
 WordHunterWoW_QuestEN[52720] = { title = "Valero Needs Help!", description = "", objectives = "" }
-WordHunterWoW_QuestEN[52721] = { title = "Valero Needs Help!", description = "", objectives = "" }
-WordHunterWoW_QuestEN[52722] = { title = "Vizio Needs Help!", description = "", objectives = "" }
-WordHunterWoW_QuestEN[52723] = { title = "Vizio Needs Help!", description = "", objectives = "" }
-WordHunterWoW_QuestEN[52724] = { title = "Vizio Needs Help!", description = "", objectives = "" }
-WordHunterWoW_QuestEN[52725] = { title = "Vizio Needs Help!", description = "", objectives = "" }
-WordHunterWoW_QuestEN[52726] = { title = "Vizio Needs Help!", description = "", objectives = "" }
-WordHunterWoW_QuestEN[52727] = { title = "Vizio Needs Help!", description = "", objectives = "" }
-WordHunterWoW_QuestEN[52728] = { title = "Vizio Needs Help!", description = "", objectives = "" }
-WordHunterWoW_QuestEN[52729] = { title = "Vizio Needs Help!", description = "", objectives = "" }
