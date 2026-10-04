@@ -11,6 +11,8 @@ local lastPlainBody
 local lastCaveat
 local lastQuestId
 local displayedPassage
+local displayedCatalog
+local renderedHookBase
 
 local function layoutContent()
   if not frame then return end
@@ -57,7 +59,13 @@ local function expandTokens(text)
 end
 
 local function questText(questId, passage)
-  local entry = WordHunterWoW_QuestEN and WordHunterWoW_QuestEN[tonumber(questId)]
+  local Addon = WordHunterWoW_Addon
+  local entry
+  if Addon and Addon.GetEnglishQuestRecord then
+    entry = Addon.GetEnglishQuestRecord(questId)
+  else
+    entry = WordHunterWoW_QuestEN and WordHunterWoW_QuestEN[tonumber(questId)]
+  end
   if not entry then return nil end
   local title = expandTokens(entry.title or "")
   local description = expandTokens(entry.description or "")
@@ -83,6 +91,11 @@ end
 -- than a frame on another, so nothing here indexes one without checking.
 local function isShown(frame)
   return (type(frame) == "table" and type(frame.IsShown) == "function" and frame:IsShown()) and true or false
+end
+
+local function catalogReader()
+  local Addon = WordHunterWoW_Addon
+  if Addon and Addon.lastQuest and Addon.lastQuest.catalog and isShown(Addon.panel) then return Addon end
 end
 
 local function questFrameOpen()
@@ -120,6 +133,8 @@ local function classicSelectedQuestId()
 end
 
 local function currentQuestId()
+  local reader = catalogReader()
+  if reader then return reader.lastQuest.id end
   if questFrameOpen() then
     local id = GetQuestID and GetQuestID()
     if id and id > 0 then return id end
@@ -137,6 +152,10 @@ end
 
 local function hideIfOrphaned()
   if not frame or not frame:IsShown() then return end
+  if displayedCatalog then
+    if not catalogReader() then frame:Hide() end
+    return
+  end
   if not questFrameOpen() and not questLogOpen() then
     frame:Hide()
   end
@@ -156,6 +175,8 @@ end
 -- -- put it where it belongs next to the dialogue and it lands over the middle
 -- of the map -- so each window keeps its own.
 local function currentHost()
+  local reader = catalogReader()
+  if reader then return "map", reader.panel end
   if isShown(QuestFrame) then return "quest", QuestFrame end
   -- Classic's quest log window stands in for Retail's map here. It is the same
   -- situation from the panel's point of view -- the player is reading the log
@@ -232,15 +253,6 @@ local function ensureFrame()
   -- been visible on its own.
   anchorFrame()
   applyTheme(frame)
-  if WordHunterWoW_Addon then
-    WordHunterWoW_Addon.enPanel = frame
-    -- Published as soon as the frame exists. The base addon's size slider looks
-    -- this up when it moves, and the frame is only built on the first quest --
-    -- so a player who opened the settings first found the slider did nothing.
-    if WordHunterWoW_Addon.ApplyWindowScale then
-      WordHunterWoW_Addon.ApplyWindowScale("enPanelTextScale")
-    end
-  end
   if WordHunterWoW_Addon and WordHunterWoW_Addon.MakeResizable then
     WordHunterWoW_Addon.MakeResizable(frame, "enPanel", 280, 220, 700, 800)
   else
@@ -263,8 +275,12 @@ local function ensureFrame()
     handle:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
     handle:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
     handle:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
-    handle:SetScript("OnMouseDown", function() frame:StartSizing("BOTTOMRIGHT") end)
-    handle:SetScript("OnMouseUp", function() frame:StopMovingOrSizing() end)
+    local function stopSizing() frame:StopMovingOrSizing() end
+    handle:RegisterForDrag("LeftButton")
+    handle:SetScript("OnDragStart", function() frame:StartSizing("BOTTOMRIGHT") end)
+    handle:SetScript("OnDragStop", stopSizing)
+    handle:SetScript("OnMouseUp", stopSizing)
+    frame:HookScript("OnHide", stopSizing)
     frame.resizeHandle = handle
   end
   if db and db.w and db.h then frame:SetSize(db.w, db.h) end
@@ -317,6 +333,9 @@ local function ensureFrame()
   end
   frame.ApplyTextScale()
   frame:Hide()
+  -- Publish after its children exist. The initial scale is already applied;
+  -- rerendering the base here would enter the catalog callback during creation.
+  if WordHunterWoW_Addon then WordHunterWoW_Addon.enPanel = frame end
   return frame
 end
 
@@ -343,7 +362,7 @@ local function label(key, fallback)
   return type(value) == "string" and value or fallback
 end
 
-local function wrapSentence(body, sentenceIndex, word, occurrence)
+local function wrapSentence(body, sentenceIndex, word, occurrence, locale)
   local Addon = WordHunterWoW_Addon
   if not body or not Addon or not Addon.SplitSentences then return body end
   local sentences, spans = Addon.SplitSentences(body)
@@ -351,7 +370,7 @@ local function wrapSentence(body, sentenceIndex, word, occurrence)
   if not span then return body end
   local sentence = sentences[sentenceIndex]
   local match = word and Addon.MatchEnglishTokenIndexes
-    and Addon.MatchEnglishTokenIndexes(sentence, word, occurrence) or {}
+    and Addon.MatchEnglishTokenIndexes(sentence, word, occurrence, locale) or {}
   local n = 0
   local sentenceColor = colorHex("enHighlight", "|cffcce8ff")
   local wordColor = colorHex("enWordHighlight", "|cffffa89c")
@@ -364,11 +383,11 @@ local function wrapSentence(body, sentenceIndex, word, occurrence)
   return body:sub(1, span.start - 1) .. colored .. body:sub(span.finish + 1)
 end
 
-local function paintEnglishBody(target, highlightSentence, word, occurrence)
+local function paintEnglishBody(target, highlightSentence, word, occurrence, locale)
   local f = target or frame
   if not f or not f.text then return end
   local body = lastPlainBody or ""
-  if highlightSentence then body = wrapSentence(body, highlightSentence, word, occurrence) end
+  if highlightSentence then body = wrapSentence(body, highlightSentence, word, occurrence, locale) end
   if lastCaveat then
     body = body .. (body ~= "" and "\n\n" or "")
       .. colorHex("caveat", "|cffc2ccdb") .. lastCaveat .. "|r"
@@ -380,11 +399,17 @@ end
 
 local function showQuest(questId)
   local Addon = WordHunterWoW_Addon
+  local reader = catalogReader()
+  local quest = reader and reader.lastQuest
+  if quest and (quest.readOnly or quest.sourceLocale == "enUS" or quest.sourceLocale == "enGB") then
+    if frame then frame:Hide() end
+    return
+  end
   if Addon and Addon.GetIntegratedLayout and Addon.GetIntegratedLayout() then
     if frame then frame:Hide() end
     return
   end
-  questId = questId or currentQuestId()
+  questId = quest and quest.id or questId or currentQuestId()
   if not questId or questId == 0 then return end
   local lastQuest = Addon and Addon.lastQuest
   local passage = (lastQuest and lastQuest.passage) or lastPassage
@@ -432,6 +457,7 @@ local function showQuest(questId)
   lastPlainBody = body
   lastCaveat = caveat
   lastQuestId, displayedPassage = tonumber(questId), passage
+  displayedCatalog = quest and tonumber(quest.id) == tonumber(questId) or false
   local f = ensureFrame()
   applyTheme(f)
   -- Size before position. SetScale reinterprets the anchor offsets, so scaling
@@ -492,6 +518,16 @@ end
 local function hookBaseAddon()
   local Addon = WordHunterWoW_Addon
   if not Addon then return end
+  if renderedHookBase ~= Addon then
+    renderedHookBase = Addon
+    local previous = Addon.OnQuestPanelRendered
+    Addon.OnQuestPanelRendered = function(quest, panel)
+      if previous then previous(quest, panel) end
+      watchHide(panel)
+      if quest and quest.catalog then showQuest(quest.id) end
+    end
+    watchHide(Addon.panel)
+  end
   if frame then
     Addon.enPanel = frame
     if Addon.ApplyWindowScale then Addon.ApplyWindowScale("enPanelTextScale") end
@@ -516,9 +552,9 @@ local function hookBaseAddon()
     if (word or deSentenceIndex) and quest and not lastCaveat
       and tonumber(quest.id) == lastQuestId
       and (quest.passage or "offer") == (displayedPassage or "offer") then
-      index = Addon.MatchEnglishSentence(quest.text, lastPlainBody, word, deSentenceIndex)
+      index = Addon.MatchEnglishSentence(quest.text, lastPlainBody, word, deSentenceIndex, quest.wordLocale)
     end
-    paintEnglishBody(frame, index, not sentenceOnly and word or nil, wordOccurrence)
+    paintEnglishBody(frame, index, not sentenceOnly and word or nil, wordOccurrence, quest and quest.wordLocale)
   end
   if Addon.ApplyIntegratedLayout then Addon.ApplyIntegratedLayout() end
 end
@@ -548,7 +584,7 @@ events:SetScript("OnEvent", function(_, event, loaded)
     end
   elseif event == "QUEST_FINISHED" then
     lastPassage = "offer"
-    if frame then frame:Hide() end
+    if catalogReader() then showQuest() elseif frame then frame:Hide() end
   else
     -- QUEST_DETAIL is the offer, QUEST_PROGRESS the "are you done yet" line,
     -- QUEST_COMPLETE the hand-in. Only the first has English text behind it.
