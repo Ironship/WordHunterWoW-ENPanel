@@ -9,6 +9,7 @@ local db
 local lastPassage = "offer"
 local lastPlainBody
 local lastCaveat
+local lastMissingPassage
 local lastQuestId
 local displayedPassage
 local displayedCatalog
@@ -79,6 +80,9 @@ local function questText(questId, passage)
   -- "reward" is what both this addon and the base call the hand-in frame.
   if passage == "reward" and (entry.completion or "") ~= "" then
     return title, expandTokens(entry.completion), true, true
+  end
+  if passage == "sourceObjective" and (entry.sourceObjective or "") ~= "" then
+    return title, expandTokens(entry.sourceObjective), true, true
   end
   local body = description
   if objectives ~= "" then body = body .. (body ~= "" and "\n\n" or "") .. objectives end
@@ -454,10 +458,14 @@ local function showQuest(questId)
     -- the translation had been cut short.
     caveat = label("enNoOffer", "[No English opening text exists for this quest. Showing its objective.]")
   end
+  lastMissingPassage = caveat ~= nil
+  if quest and quest.referenceNote then
+    caveat = (caveat and caveat .. "\n" or "") .. "[" .. quest.referenceNote .. "]"
+  end
   lastPlainBody = body
   lastCaveat = caveat
-  lastQuestId, displayedPassage = tonumber(questId), passage
-  displayedCatalog = quest and tonumber(quest.id) == tonumber(questId) or false
+  lastQuestId, displayedPassage = tonumber(questId) or questId, passage
+  displayedCatalog = quest and quest.id == questId or false
   local f = ensureFrame()
   applyTheme(f)
   -- Size before position. SetScale reinterprets the anchor offsets, so scaling
@@ -549,8 +557,8 @@ local function hookBaseAddon()
     -- clicked anything, so the English side follows along as the quest is read
     -- aloud. Everything else about the check is unchanged -- the quest shown
     -- still has to be the quest asked about.
-    if (word or deSentenceIndex) and quest and not lastCaveat
-      and tonumber(quest.id) == lastQuestId
+    if (word or deSentenceIndex) and quest and not lastMissingPassage
+      and (tonumber(quest.id) or quest.id) == lastQuestId
       and (quest.passage or "offer") == (displayedPassage or "offer") then
       index = Addon.MatchEnglishSentence(quest.text, lastPlainBody, word, deSentenceIndex, quest.wordLocale)
     end
