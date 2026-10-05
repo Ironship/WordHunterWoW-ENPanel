@@ -84,6 +84,9 @@ local function questText(questId, passage)
   if passage == "sourceObjective" and (entry.sourceObjective or "") ~= "" then
     return title, expandTokens(entry.sourceObjective), true, true
   end
+  if passage == "title" and title ~= "" then
+    return title, expandTokens(title), true, true
+  end
   local body = description
   if objectives ~= "" then body = body .. (body ~= "" and "\n\n" or "") .. objectives end
   -- Whether this record has the quest's opening text at all. Retail records
