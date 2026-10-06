@@ -1,4 +1,4 @@
-## Interface: 11509
+## Interface: 16001
 ## Title: QuestWordHunter - English Quest Panel
 ## Notes: English quest text while you play in another language, plus item tooltips when the item pack is installed. Works on its own.
 ## IconTexture: Interface\AddOns\WordHunterWoW-ENPanel\icon
