@@ -181,3 +181,70 @@ _G["GameTooltipTextLeft1"] = { GetText = function() return "Feuerball" end }
 
 local c = N.Counts()
 print(string.format("all assertions passed  (spell=%d npc=%d item=%d)", c.spell, c.npc, c.item or 0))
+
+-- Retail 12.1.5 screenshots: these talents and spellbook upgrades used new
+-- spell IDs beyond the old importer's ceiling, even when an older spell with
+-- the same name was already present (Thistle Tea and Roll the Bones).
+dofile("Data/DescSpell.lua")
+local rogueSpells = {
+  [1267182] = "Toxic Stiletto",
+  [1267210] = "Quick Fingers",
+  [1267216] = "Deep Cuts",
+  [1293135] = "Sanguine Vial",
+  [1267220] = "Danger Sense",
+  [1298826] = "Thistle Tea",
+  [1247993] = "Motivated Murderer",
+  [1247227] = "Crimson Tempest",
+  [1250359] = "Canny Strikes",
+  [1249802] = "Razor Wire",
+  [1250141] = "Secondary Poisoning",
+  [1292996] = "Negotiable Contract",
+  [1249809] = "Finish the Job",
+  [1250325] = "Regicide's Reward",
+  [1250036] = "Inspiring Strike",
+  [1250318] = "Poisoner's Drive",
+  [1250358] = "Avulsion",
+  [1298812] = "Unstable Toxin",
+  [1265385] = "Implacable",
+  [1265386] = "Implacable",
+  [1265387] = "Implacable",
+  [1277933] = "Preparation",
+  [1214909] = "Roll the Bones",
+  [1279401] = "Shuriken Storm",
+}
+local checked = 0
+for id, name in pairs(rogueSpells) do
+  reset(GameTooltip)
+  hook(GameTooltip, { type = Enum.TooltipDataType.Spell, id = id })
+  assert(GameTooltip.lines[2] == "English = " .. name,
+    "missing rogue name: " .. id .. " " .. name)
+  assert(type(GameTooltip.lines[3]) == "string" and #GameTooltip.lines[3] > 0,
+    "missing rogue description: " .. id .. " " .. name)
+  assert(#GameTooltip.lines == 3, "rogue tooltip should append English once: " .. id)
+  checked = checked + 1
+end
+print("rogue screenshots: " .. checked .. " names and descriptions appended")
+
+-- IDs discovered from the pinned class/spec/hero/PvP API responses, including
+-- the six descriptions Blizzard returns as null from both spell and talent APIs.
+local coverage = dofile("tests/fixtures/class-spells.lua")
+local total = 0
+assert(#coverage.classes == 13 and coverage.specializations == 40 and coverage.heroTrees == 41)
+for _, class in ipairs(coverage.classes) do
+  for _, id in ipairs(class.ids) do
+    reset(GameTooltip)
+    hook(GameTooltip, { type = Enum.TooltipDataType.Spell, id = id })
+    assert(type(GameTooltip.lines[2]) == "string" and GameTooltip.lines[2]:find("English = ", 1, true),
+      class.name .. " missing spell name: " .. id)
+    if coverage.noDescription[id] then
+      assert(GameTooltip.lines[2] == "English = " .. coverage.noDescription[id],
+        class.name .. " missing name-only spell: " .. id)
+      assert(#GameTooltip.lines == 2, "API has no description for " .. id)
+    else
+      assert(type(GameTooltip.lines[3]) == "string" and #GameTooltip.lines[3] > 0,
+        class.name .. " missing spell description: " .. id)
+    end
+    total = total + 1
+  end
+end
+print("class coverage: " .. #coverage.classes .. " classes, " .. total .. " class/spell pairs appended")

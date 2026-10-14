@@ -41,16 +41,15 @@ def main():
         sys.exit(f"no descriptions exist for {args.kind}")
     src = cache_path(ROOT / "Data/cache", args.product,
                      f"desc_{args.kind}.jsonl" if args.desc else f"names_{args.kind}.jsonl")
-    rows = []
+    entries = {}
     for line in src.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
         r = json.loads(line)
         text = (r.get("text") if args.desc else r.get("name")) or ""
         text = text.strip()
-        if text:
-            rows.append((int(r["id"]), text))
-    rows.sort()
+        entries[int(r["id"])] = text
+    rows = sorted((entity_id, text) for entity_id, text in entries.items() if text)
 
     out_dir = pathlib.Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -72,7 +71,7 @@ def main():
         name = (f"{stem}_{index // chunk:03d}.lua" if args.chunk else f"{stem}.lua")
         lines = [f"{var} = {var} or {{}}"]
         lines += [f"{var}[{qid}] = {quote(text)}" for qid, text in part]
-        (out_dir / name).write_text("\n".join(lines) + "\n", encoding="utf-8")
+        (out_dir / name).write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
         written.append(name)
 
     total = sum((out_dir / n).stat().st_size for n in written)

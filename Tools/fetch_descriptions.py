@@ -21,9 +21,9 @@ CACHE = ROOT / "Data/cache"
 PATHS = {"spell": "/data/wow/spell/{}", "item": "/data/wow/item/{}"}
 
 
-def get_token():
+def get_token(keys_file=None):
     env = {}
-    for line in (ROOT / "Tools/keys.env").read_text(encoding="utf-8").splitlines():
+    for line in pathlib.Path(keys_file or ROOT / "Tools/keys.env").read_text(encoding="utf-8").splitlines():
         if "=" in line:
             k, v = line.split("=", 1)
             env[k.strip()] = v.strip()
@@ -56,6 +56,8 @@ def main():
     ap.add_argument("--kind", choices=PATHS, required=True)
     ap.add_argument("--product", default="retail", choices=sorted(PRODUCTS))
     ap.add_argument("--region", default="eu")
+    ap.add_argument("--keys-file", type=pathlib.Path, help="Blizzard API credentials file")
+    ap.add_argument("--retry-empty", action="store_true", help="retry cached entries with no description")
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--limit", type=int, default=0)
     args = ap.parse_args()
@@ -71,7 +73,9 @@ def main():
         for line in out_path.read_text(encoding="utf-8").splitlines():
             if line.strip():
                 try:
-                    done.add(json.loads(line)["id"])
+                    row = json.loads(line)
+                    if not args.retry_empty or row.get("text"):
+                        done.add(row["id"])
                 except Exception:
                     pass
     todo = [i for i in ids if i not in done]
@@ -79,9 +83,10 @@ def main():
         todo = todo[:args.limit]
     print(f"product={args.product} kind={args.kind} known={len(ids):,} already described={len(done):,} to fetch={len(todo):,}")
 
-    token = [get_token()]
+    token = [get_token(args.keys_file)]
     lock = threading.Lock()
     count = [0]
+    failures = []
     started = time.monotonic()
     fh = out_path.open("a", encoding="utf-8")
 
@@ -97,23 +102,26 @@ def main():
                 text = describe(args.kind, record)
                 with lock:
                     fh.write(json.dumps({"id": entity_id, "text": text}, ensure_ascii=False) + "\n")
-                return
+                return True
             except urllib.error.HTTPError as e:
                 if e.code == 404:
                     with lock:
                         fh.write(json.dumps({"id": entity_id, "text": ""}) + "\n")
-                    return
+                    return True
                 if e.code == 401:
                     with lock:
-                        token[0] = get_token()
+                        token[0] = get_token(args.keys_file)
                 else:
                     time.sleep(2 ** attempt)
             except Exception:
                 time.sleep(2 ** attempt)
+        return False
 
     def run(entity_id):
-        fetch(entity_id)
+        success = fetch(entity_id)
         with lock:
+            if not success:
+                failures.append(entity_id)
             count[0] += 1
             if count[0] % 500 == 0:
                 rate = count[0] / max(time.monotonic() - started, 1)
@@ -125,10 +133,14 @@ def main():
         list(pool.map(run, todo))
     fh.close()
 
-    rows = [json.loads(l) for l in out_path.read_text(encoding="utf-8").splitlines() if l.strip()]
+    rows = {r["id"]: r for l in out_path.read_text(encoding="utf-8").splitlines()
+            if l.strip() for r in [json.loads(l)]}.values()
     withtext = sum(1 for r in rows if r["text"])
     print(f"done: {len(rows):,} records, {withtext:,} with text "
           f"({time.monotonic()-started:.0f}s) -> {out_path}")
+    if failures:
+        print(f"failed: {len(failures)} requests; retry IDs: {failures}")
+        return 1
     return 0
 
 

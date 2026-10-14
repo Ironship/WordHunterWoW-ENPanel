@@ -4,7 +4,7 @@
 -- thing. Retail loads NamesSpell, NamesNPC and DescSpell; Classic Era loads
 -- none of them, and Names.lua initialises the tables to empty and returns nil
 -- for every lookup. No error, no warning, no English on a single Classic spell
--- or NPC tooltip -- while the README told the reader to expect 8,941 spells
+-- or NPC tooltip -- while the README told the reader to expect 11,038 spells
 -- and 13,500 creatures.
 --
 -- An audit raised it as a packaging contract: either the Vanilla manifest is
@@ -49,7 +49,7 @@ end
 -- rather than by its wording, so rephrasing the sentence does not slip past.
 local promises = {}
 for line in readme:gmatch("[^\n]+") do
-  if line:find("8,941", 1, true) or line:find("13,500", 1, true) then
+  if line:find("11,038", 1, true) or line:find("13,500", 1, true) then
     promises[#promises + 1] = line
   end
 end

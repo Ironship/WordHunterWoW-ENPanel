@@ -9,7 +9,7 @@ The quest you have open appears in English in its own window, next to the origin
 ## What you get
 
 - **English quest text** — 49,041 Retail quests and 4,244 Classic, title and description
-- **English spell names and descriptions** on tooltips — 8,941 spells *(Retail only)*
+- **English spell names** on tooltips — 11,038 spells, with 10,220 descriptions *(Retail only)*
 - **English NPC names** on tooltips — 13,500 creatures *(Retail only)*
 - **English item names** — a separate download, [English Item Names](https://github.com/Ironship/WordHunterWoW-ENPanel-Items), 168,833 items
 
@@ -40,6 +40,11 @@ Nothing else is required. If you also install [QuestWordHunter](https://github.c
 
 A spell's English description shows Blizzard's standard values, so a damage number may not match the one your character rolls. Everything else — what the ability does, percentages, durations — is exact.
 
+Spell data was refreshed from Blizzard's Retail 12.1.5 API on 14 October 2026.
+Coverage was checked for all 13 classes, 40 specializations, 41 hero trees and
+407 PvP talents, in addition to the full spell search. Some API records have no
+description, including six class talents; those tooltips receive a name only.
+
 Some quests have no English text for their progress or hand-in lines, because Blizzard does not publish it. The panel tells you when that happens instead of showing you the wrong passage.
 
 Retail 12.1 (interface 120100) and Classic Era 1.15.9 (11509) — one manifest
@@ -54,13 +59,22 @@ python Tools/fetch_quests.py
 python Tools/build_quest_lua.py
 python Tools/fetch_names.py --kind spell
 python Tools/fetch_names.py --kind creature
-python Tools/fetch_descriptions.py --kind spell
+python Tools/fetch_descriptions.py --kind spell --retry-empty
 python Tools/build_names_lua.py --kind spell --out Data
 python Tools/build_names_lua.py --kind creature --out Data
 python Tools/build_names_lua.py --kind spell --desc --out Data
 ```
 
 Commit the generated `Data/*.lua`. Do not commit `Data/cache/`.
+
+Both fetch commands accept `--keys-file <path>` when the credentials are kept
+outside this checkout. `--retry-empty` asks again for descriptions that were
+previously unavailable. Failed requests and truncated searches return a failure
+status, leaving the cache available for another run.
+
+The Retail spell search includes IDs below 2,000,000. Use `--max-id` to extend
+that range when new spells exceed it; older imports stopped at 500,000 and
+missed the newer Rogue abilities entirely.
 
 ## Classic Era and Season of Discovery
 

@@ -35,25 +35,19 @@ CACHE = ROOT / "Data/cache"
 # is what makes the pack 8 MB instead of 50 MB.
 LOCALE = "en_US"
 PAGE_SIZE = 1000            # the per-query result cap
-KINDS = {
-    # kind: (search path, id ceiling to walk to, starting window)
-    "item":     ("/data/wow/search/item",     260000, 4000),
-    "spell":    ("/data/wow/search/spell",    500000, 4000),
-    "creature": ("/data/wow/search/creature", 260000, 8000),
-}
 
 
-def load_keys():
+def load_keys(keys_file=None):
     env = {}
-    for line in (ROOT / "Tools/keys.env").read_text(encoding="utf-8").splitlines():
+    for line in pathlib.Path(keys_file or ROOT / "Tools/keys.env").read_text(encoding="utf-8").splitlines():
         if "=" in line:
             k, v = line.split("=", 1)
             env[k.strip()] = v.strip()
     return env["BLIZZARD_CLIENT_ID"], env["BLIZZARD_CLIENT_SECRET"]
 
 
-def get_token():
-    cid, secret = load_keys()
+def get_token(keys_file=None):
+    cid, secret = load_keys(keys_file)
     auth = base64.b64encode(f"{cid}:{secret}".encode()).decode()
     req = urllib.request.Request("https://oauth.battle.net/token",
                                  data=b"grant_type=client_credentials",
@@ -62,10 +56,11 @@ def get_token():
 
 
 class Api:
-    def __init__(self, region="eu", product="retail"):
+    def __init__(self, region="eu", product="retail", keys_file=None):
         self.region = region
         self.namespace = namespace(product, region)
-        self.token = get_token()
+        self.keys_file = keys_file
+        self.token = get_token(keys_file)
         self.lock = threading.Lock()
 
     def search(self, path, lo, hi, page):
@@ -80,7 +75,7 @@ class Api:
             except urllib.error.HTTPError as e:
                 if e.code == 401:
                     with self.lock:
-                        self.token = get_token()
+                        self.token = get_token(self.keys_file)
                 elif e.code in (429, 500, 502, 503, 504):
                     time.sleep(2 ** attempt)
                 else:
@@ -105,6 +100,7 @@ def main():
     ap.add_argument("--kind", required=True)
     ap.add_argument("--product", default="retail", choices=sorted(PRODUCTS))
     ap.add_argument("--region", default="eu")
+    ap.add_argument("--keys-file", type=pathlib.Path, help="Blizzard API credentials file")
     ap.add_argument("--max-id", type=int, help="override the id ceiling")
     args = ap.parse_args()
 
@@ -129,7 +125,7 @@ def main():
     print(f"product={args.product} kind={args.kind} already cached={len(have):,} ceiling={ceiling:,}")
     print(f"writing to {out_path}")
 
-    api = Api(args.region, args.product)
+    api = Api(args.region, args.product, keys_file=args.keys_file)
     lo, written, queries = 0, 0, 0
     started = time.monotonic()
     with out_path.open("a", encoding="utf-8") as fh:
@@ -140,8 +136,7 @@ def main():
                 data = api.search(path, lo, hi, 1)
                 queries += 1
                 if data is None:
-                    print(f"  ! giving up on [{lo},{hi}]")
-                    break
+                    raise RuntimeError(f"search failed for [{lo},{hi}]; cache retained for retry")
                 results = data.get("results", [])
                 # pageCount is useless here: the API caps a result set at 1000 and
                 # the page size is already 1000, so an overflowing window still
@@ -151,8 +146,7 @@ def main():
                     if span > 100:
                         span //= 2
                         continue
-                    print(f"  ! [{lo},{hi}] still full at the minimum window; "
-                          f"ids beyond the first {len(results)} may be missing")
+                    raise RuntimeError(f"search results truncated for [{lo},{hi}]; narrow the window")
                 for result in results:
                     rec = result.get("data", {})
                     rid = rec.get("id")

@@ -26,7 +26,7 @@ PRODUCTS = {
         # kind: (search path, id ceiling, starting window)
         "kinds": {
             "item":     ("/data/wow/search/item",     260000, 4000),
-            "spell":    ("/data/wow/search/spell",    500000, 4000),
+            "spell":    ("/data/wow/search/spell",   2000000, 4000),
             "creature": ("/data/wow/search/creature", 260000, 8000),
         },
     },
