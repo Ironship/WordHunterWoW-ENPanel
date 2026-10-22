@@ -1,5 +1,7 @@
 # QuestWordHunter — English Quest Panel
 
+Controllers can scroll the panel with D-pad up/down or LB/RB and close it with B / Circle. The footer shows the client's button labels. With ConsolePort active, its interface cursor handles the panel instead.
+
 Play WoW in German, French, Spanish, Italian or Portuguese, and read the English whenever a sentence defeats you.
 
 The quest you have open appears in English in its own window, next to the original. Hover a spell or an NPC and its English name and description appear on the tooltip you are already looking at.
