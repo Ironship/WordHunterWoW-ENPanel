@@ -40,7 +40,7 @@ Nothing else is required. If you also install [QuestWordHunter](https://github.c
 
 ## Good to know
 
-A spell's English description shows Blizzard's standard values, so a damage number may not match the one your character rolls. Everything else — what the ability does, percentages, durations — is exact.
+Blizzard's description API works its numbers out for a default character, not for yours, so on Retail the amounts that scale with level, gear and talents — damage, healing, absorbs and flat stat bonuses — are shown as **X** ("causing X Frost damage") instead of a figure that would be wrong for most players. Read the real amount off the tooltip above the English block. Percentages, durations, ranges and counts are the spell's base values and are kept; talents can still change them.
 
 Spell data was refreshed from Blizzard's Retail 12.1.5 API on 14 October 2026.
 Coverage was checked for all 13 classes, 40 specializations, 41 hero trees and
@@ -64,7 +64,7 @@ python Tools/fetch_names.py --kind creature
 python Tools/fetch_descriptions.py --kind spell --retry-empty
 python Tools/build_names_lua.py --kind spell --out Data
 python Tools/build_names_lua.py --kind creature --out Data
-python Tools/build_names_lua.py --kind spell --desc --out Data
+python Tools/build_names_lua.py --kind spell --desc --out Data   # also masks scaled amounts as X (Tools/scaling.py)
 ```
 
 Commit the generated `Data/*.lua`. Do not commit `Data/cache/`.

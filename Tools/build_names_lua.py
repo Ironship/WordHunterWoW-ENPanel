@@ -11,6 +11,7 @@ optional addon and register themselves when present.
 """
 import argparse, json, pathlib, sys
 from products import PRODUCTS, cache_path
+from scaling import mask
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 VARS = {"item": "WordHunterWoW_ENNames_Item",
@@ -48,6 +49,14 @@ def main():
         r = json.loads(line)
         text = (r.get("text") if args.desc else r.get("name")) or ""
         text = text.strip()
+        # Amounts the game scales for the player are not knowable here: say X.
+        if args.desc and PRODUCTS[args.product].get("scaled_values"):
+            # Spells scale with the player; an item's figures are the item's own, so
+            # only the ones the API could not work out (0) are replaced.
+            if args.kind == "spell":
+                text = mask(text)
+            elif args.kind == "item":
+                text = mask(text, zeros_only=True)
         entries[int(r["id"])] = text
     rows = sorted((entity_id, text) for entity_id, text in entries.items() if text)
 

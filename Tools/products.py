@@ -23,6 +23,10 @@ PRODUCTS = {
         # nothing already downloaded has to move.
         "cache_prefix": "",
         "has_quests": True,
+        # Retail scales damage, healing and stats with level, gear and talents, and
+        # the API words its descriptions out for a default character: a figure in
+        # one is wrong for most players. See Tools/scaling.py.
+        "scaled_values": True,
         # kind: (search path, id ceiling, starting window)
         "kinds": {
             "item":     ("/data/wow/search/item",     260000, 4000),
