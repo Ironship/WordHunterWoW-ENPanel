@@ -424,15 +424,17 @@ local function label(key, fallback)
   return type(value) == "string" and value or fallback
 end
 
-local function wrapSentence(body, sentenceIndex, word, occurrence, locale)
+local function wrapSentence(body, sentenceIndex, word, occurrence, locale, deSentence)
   local Addon = WordHunterWoW_Addon
   if not body or not Addon or not Addon.SplitSentences then return body end
   local sentences, spans = Addon.SplitSentences(body)
   local span = spans and spans[sentenceIndex]
   if not span then return body end
   local sentence = sentences[sentenceIndex]
+  -- With the German sentence the base addon aligns the two sentences whole,
+  -- as the quest panel does; without it, it looks for the word on its own.
   local match = word and Addon.MatchEnglishTokenIndexes
-    and Addon.MatchEnglishTokenIndexes(sentence, word, occurrence, locale) or {}
+    and Addon.MatchEnglishTokenIndexes(sentence, word, occurrence, locale, deSentence) or {}
   local n = 0
   local sentenceColor = colorHex("enHighlight", "|cffcce8ff")
   local wordColor = colorHex("enWordHighlight", "|cffffa89c")
@@ -445,11 +447,11 @@ local function wrapSentence(body, sentenceIndex, word, occurrence, locale)
   return body:sub(1, span.start - 1) .. colored .. body:sub(span.finish + 1)
 end
 
-local function paintEnglishBody(target, highlightSentence, word, occurrence, locale)
+local function paintEnglishBody(target, highlightSentence, word, occurrence, locale, deSentence)
   local f = target or frame
   if not f or not f.text then return end
   local body = lastPlainBody or ""
-  if highlightSentence then body = wrapSentence(body, highlightSentence, word, occurrence, locale) end
+  if highlightSentence then body = wrapSentence(body, highlightSentence, word, occurrence, locale, deSentence) end
   if lastCaveat then
     body = body .. (body ~= "" and "\n\n" or "")
       .. colorHex("caveat", "|cffc2ccdb") .. lastCaveat .. "|r"
@@ -620,7 +622,9 @@ local function hookBaseAddon()
       and (quest.passage or "offer") == (displayedPassage or "offer") then
       index = Addon.MatchEnglishSentence(quest.text, lastPlainBody, word, deSentenceIndex, quest.wordLocale)
     end
-    paintEnglishBody(frame, index, not sentenceOnly and word or nil, wordOccurrence, quest and quest.wordLocale)
+    local deSentence = index and deSentenceIndex and quest and quest.text and Addon.SplitSentences
+      and Addon.SplitSentences(quest.text)[deSentenceIndex]
+    paintEnglishBody(frame, index, not sentenceOnly and word or nil, wordOccurrence, quest and quest.wordLocale, deSentence)
   end
   if Addon.ApplyIntegratedLayout then Addon.ApplyIntegratedLayout() end
 end
