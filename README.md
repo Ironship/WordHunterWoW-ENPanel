@@ -10,7 +10,7 @@ The quest you have open appears in English in its own window, next to the origin
 
 ## What you get
 
-- **English quest text** — 49,141 Retail quests, 4,244 Classic and 5,285 for WoW: Forever, title and description
+- **English quest text** — 49,141 Retail quests, 4,244 Classic and 6,120 for WoW: Forever, title and description
 - **English spell names** on tooltips — 11,038 spells, with 10,220 descriptions *(Retail only)*
 - **English NPC names** on tooltips — 13,500 creatures *(Retail only)*
 - **English item names** — a separate download, [English Item Names](https://github.com/Ironship/WordHunterWoW-ENPanel-Items), 168,833 items
@@ -33,13 +33,13 @@ read from a Classic client too.
 
 ## On WoW: Forever
 
-5,285 quests, put together from what the Forever client itself received from the server, the Classic data,
-the Forever data of the MultiLanguage addon by Ruben Zantingh (used with his permission) and the quest data of
-the Spoken addon by Rusty Key (MIT). Most of them also carry the line the NPC says while the quest is in
-progress and the one at hand-in, so the panel shows the passage you are actually reading. The new quests that
-only Forever has are in as far as any source has their text; for the rest there is no English text yet, and
-the panel says so. A number the game works out from its own data tables is shown as **X**. `NOTICE` has the
-details and the licences.
+6,120 quests, put together from what the Forever client and its players' clients received from the server
+(data from [Efficient Games](https://efficient.games), licensed under CC BY 4.0), the Classic data, the Forever
+data of the MultiLanguage addon by Ruben Zantingh (used with his permission) and the quest data of the Spoken
+addon by Rusty Key (MIT). Most of them also carry the line the NPC says while the quest is in progress and the
+one at hand-in, so the panel shows the passage you are actually reading. Every quest the server serves is in,
+the new ones that only Forever has included; a quest it does not serve yet has no English text anywhere, and the
+panel says so. `NOTICE` has the details and the licences.
 
 ## Install
 
@@ -97,7 +97,8 @@ Blizzard's API has none of the new Forever quests, so this is where they come fr
 
 `Tools/QuestSweep` is a small addon for the maintainer: copy it into the AddOns folder, run an English
 client, `/qsweep start`, and it asks the server about every quest id, slowly, so the cache fills with all of
-them. Log out when it says it is done, then:
+them (Efficient Games' players have done the same for most quests, and the build reads their files too). Log out
+when it says it is done, then:
 
 ```
 python Tools/build_forever_quests.py --fetch --wdb "<game>\_forever_\Cache\WDB\enUS\questcache.wdb"
@@ -106,9 +107,10 @@ python Tools/build_quest_lua.py --cache Data/cache/forever/quests_enUS.jsonl --o
 
 The client's cache does not keep everything it has ever held, so every run adds what it reads to
 `Data/cache/forever/native_enUS.jsonl`, and the build reads from there. `--native-lua` takes an older capture
-kept as Lua (the German Dictionary's `QuestData/Data/forever/enUS_000.lua` is one). The MultiLanguage file is
-fetched at the revision named in `Tools/build_forever_quests.py`. The script's header says which source wins
-for which field.
+kept as Lua (the German Dictionary's `QuestData/Data/forever/enUS_000.lua` is one). The MultiLanguage, Spoken and
+Efficient Games files are fetched at the revisions named in `Tools/build_forever_quests.py`; to take newer data
+from Efficient Games, whose repository changes daily, change that revision. The script's header says which
+source wins for which field.
 
 ## Classic Era and Season of Discovery
 

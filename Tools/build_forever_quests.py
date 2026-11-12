@@ -5,7 +5,7 @@ Forever (the Camelot client) is Classic with new content on top: about 4,400
 quests that Classic had and about 1,800 that only it has, with ids from 65000 up.
 None of the new ones is in the Retail data (what the Game Data API returned), and
 the API has no quest endpoint for Classic at all, so the Retail pipeline cannot
-reach them. This script puts together what can be had, field by field, from four
+reach them. This script puts together what can be had, field by field, from five
 places:
 
   native        what the Forever client itself received from the server, read out
@@ -14,6 +14,13 @@ places:
                 client cache is not cumulative -- quests drop out of it -- so
                 every run adds what it read to Data/cache/forever/native_enUS.jsonl
                 and reads from there, and nothing once seen is lost.
+  efficient     Efficient Games' EG Link output (CC BY 4.0, see NOTICE): what the
+                server said of every quest that players' clients asked about, read
+                from their caches like the line above but from many players and
+                every build, the objectives' amounts included; and the lines the
+                NPC says while a quest is in progress and at hand-in, as players'
+                games showed them. It is the game's own text too, so it is merged
+                with the native text: the newer build wins.
   classic       Data/Classic: titles and objective lines from the Classic quest
                 database, plus the opening text that was copied over from the
                 Retail quest of the same id. A Retail copy can be a newer telling
@@ -32,18 +39,20 @@ places:
 
 Which source wins, per field:
 
-  title        native, classic, multilanguage, spoken
+  title        native (client cache or Efficient Games, newer build first), classic,
+               multilanguage, spoken
   description  native, multilanguage, spoken, classic (Retail copy)
   objectives   native, classic, multilanguage
-  progress     multilanguage
-  completion   multilanguage, spoken
+  progress     efficient games, multilanguage
+  completion   efficient games, multilanguage, spoken
 
 Nothing is rewritten. The only change made to a text is the one that makes the
 sources agree on how a name is written: the game's $n, $c and $r (and the
 <name> of the scrape) become {name}, {class} and {race}, and $b becomes a line
 break. A macro the game would fill with a number ($1oa: the amount of the first
-objective) is replaced only when another source has the same sentence with the
-number written out; otherwise it is left as the game wrote it.
+objective) is replaced by the amount Efficient Games lists for that objective, or
+when another source has the same sentence with the number written out; otherwise
+it is shown as X.
 
     python Tools/build_forever_quests.py --fetch --wdb "<game>/Cache/WDB/enUS/questcache.wdb"
     python Tools/build_quest_lua.py --cache Data/cache/forever/quests_enUS.jsonl --out Data/Forever --chunk 1000 --toc WordHunterWoW-ENPanel_Camelot.toc --flavor forever
@@ -77,6 +86,12 @@ SPOKEN_REV = "9b2e01c92f99c8d2457fa676a1b9f91ba602338a"
 SPOKEN_FILES = ("QuestText.lua", "Compendium.lua")
 SPOKEN_URL = ("https://raw.githubusercontent.com/rusty-key/spoken-wow/"
               "%s/addons/Spoken_Quests/Data/%%s" % SPOKEN_REV)
+
+# Efficient Games' EG Link output (CC BY 4.0), at the revision it was read from. One
+# folder per client build under two products: the beta and the live game.
+EG_REPO = "JIVESCORP/eg-link-output-wowf"
+EG_REV = "164bd1e2d89579ada4ee5e2de7e5fd4db684a9f1"
+EG_RAW = "https://raw.githubusercontent.com/%s/%s/" % (EG_REPO, EG_REV)
 
 FIELD = re.compile(r'(\w+) = (nil|-?\d+(?:\.\d+)?|true|false|"(?:\\.|[^"\\])*")')
 ROW = re.compile(r"^\s*(?:[A-Za-z_]\w*)?\[(\d+)\] = \{(.*)\},?\s*$")
@@ -143,7 +158,9 @@ def normalize(text, scraped=False):
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     text = re.sub(r"\$[bB]", "\n", text)
     for word, letters in NAME_FORMS:
-        text = re.sub(r"\$[%s](?![A-Za-z])" % letters, "{%s}" % word, text)
+        # One letter is the whole macro; what follows it is ordinary text, so
+        # "$rs" is the race and an s, "$nath" the name and "ath".
+        text = re.sub(r"\$[%s]" % letters, "{%s}" % word, text)
         text = text.replace("<%s>" % word, "{%s}" % word)
     # "$g lad : lass;" is the game's he/she switch. The data already writes those
     # as <lad/lass> (the Blizzard API does), so this is the same thing.
@@ -152,7 +169,7 @@ def normalize(text, scraped=False):
 
 
 GENDER = re.compile(r"\$[gG]\s*([^:;$]+?)\s*:\s*([^;$]+?)\s*;")
-DEVELOPER_TEXT = re.compile(r"temp text \d+|NEW TEST|\$Tpunk;")
+DEVELOPER_TEXT = re.compile(r"temp text \d+|NEW TEST|\$Tpunk;|\(123\)aa")
 
 # The scrape glued the reward headings of the quest page onto the end of its text.
 REWARD_HEADING = re.compile(
@@ -214,6 +231,23 @@ def resolve_macros(native, reference):
         if values.setdefault(key, value) != value:
             return native
     return MACRO.sub(lambda match: values[match.group(1)], native)
+
+
+def fill_amounts(text, amounts):
+    """Write out $1oa, $2oa ... from the amounts of the quest's objectives, in order."""
+    if not text or not amounts:
+        return text
+
+    def number(match):
+        index = int(match.group(1)) - 1
+        if 0 <= index < len(amounts) and amounts[index] > 0:
+            return str(amounts[index])
+        return match.group(0)
+    return MACRO.sub(number, text)
+
+
+# A title that says the record is not a quest a player can have.
+JUNK_TITLE = re.compile(r"^<(?:UNUSED|TEST)[^>]*>", re.I)
 
 
 # --- sources ----------------------------------------------------------------
@@ -278,6 +312,77 @@ def load_spoken(directory):
     return {quest_id: record for quest_id, record in out.items() if record}
 
 
+def build_number(build):
+    return int(str(build).split(".")[-1])
+
+
+def eg_files(directory, dataset):
+    """Efficient Games' files of one dataset, oldest build first, the live game after the beta."""
+    found = []
+    for path in pathlib.Path(directory).glob("*/*/%s.enUS.json" % dataset):
+        found.append((build_number(path.parent.name), path.parent.parent.name == "wowf", path))
+    return [path for _, _, path in sorted(found)]
+
+
+def load_eg(directory):
+    """What Efficient Games' players' clients recorded of Forever's quests.
+
+    Returns (quests, texts). quests[id] is the server's description of the quest in
+    the newest build that has one, as an entry like a client cache's (title,
+    description, objectives, build) plus the amount of each objective, in order.
+    texts[id] has the line the NPC says while the quest is in progress and the one
+    at hand-in, from the newest build that recorded them, the variant most players
+    saw first.
+    """
+    quests, texts = {}, {}
+    for path in eg_files(directory, "quests"):
+        build = build_number(path.parent.name)
+        for key, record in json.loads(path.read_text(encoding="utf-8"))["quests"].items():
+            entry = {
+                "id": int(key),
+                "title": record.get("title", ""),
+                "description": record.get("description", ""),
+                "objectives": record.get("objectivesText", ""),
+                "amounts": [objective.get("amount", 0) for objective in sorted(
+                    record.get("objectives", []), key=lambda o: o.get("storageIndex", 0))],
+                "source": "efficient.games",
+                "build": build,
+                "locale": "enUS",
+            }
+            if not (entry["title"] or entry["description"] or entry["objectives"]):
+                continue
+            quests[entry["id"]] = entry  # a later file is a newer build
+    for path in eg_files(directory, "texts"):
+        for key, record in json.loads(path.read_text(encoding="utf-8"))["quests"].items():
+            found = texts.setdefault(int(key), {})
+            for said, field in (("progress", "progress"), ("complete", "completion")):
+                variants = record.get(said) or []
+                if variants and variants[0].get("text"):
+                    found[field] = variants[0]["text"]
+    return quests, {quest_id: found for quest_id, found in texts.items() if found}
+
+
+def fetch_eg(directory):
+    """Download the quest and text files of every build, as many as are not there yet.
+
+    The repository's own index (data/index.json) names every product, build and
+    dataset it holds.
+    """
+    index_url = EG_RAW + "data/index.json"
+    print("reading", index_url)
+    request = urllib.request.Request(index_url, headers={"User-Agent": "WordHunterWoW-ENPanel/1"})
+    with urllib.request.urlopen(request, timeout=60) as response:
+        products = json.load(response)["products"]
+    for product in ("wow_classic_beta", "wowf"):
+        for build, datasets in products.get(product, {}).items():
+            for dataset in ("quests", "texts"):
+                if "%s.enUS" % dataset not in datasets:
+                    continue
+                destination = pathlib.Path(directory) / product / build / ("%s.enUS.json" % dataset)
+                if not destination.exists():
+                    download(EG_RAW + "data/%s/%s/%s.enUS.json" % (product, build, dataset), destination)
+
+
 def load_native_jsonl(path):
     out = {}
     path = pathlib.Path(path)
@@ -337,25 +442,35 @@ def fetch_spoken(directory):
 
 # --- merge ------------------------------------------------------------------
 
-def assemble(classic, multilanguage, spoken, native):
+def assemble(classic, multilanguage, spoken, native, eg_texts, eg_amounts):
     records, report = {}, {"title": {}, "description": {}, "objectives": {}, "progress": {}, "completion": {}}
     resolved = unresolved = 0
     masked = []
+    filled = []
 
     def count(field, source):
         report[field][source] = report[field].get(source, 0) + 1
 
-    for quest_id in sorted(set(classic) | set(multilanguage) | set(spoken) | set(native)):
+    picked = []
+
+    for quest_id in sorted(set(classic) | set(multilanguage) | set(spoken) | set(native) | set(eg_texts)):
         cl = classic.get(quest_id, {})
         ml = multilanguage.get(quest_id, {})
         sp = spoken.get(quest_id, {})
+        eg = eg_texts.get(quest_id, {})
         na = native.get(quest_id)
+        amounts = eg_amounts.get(quest_id) or (na or {}).get("amounts")
+        label = "eg" if (na or {}).get("source") == "efficient.games" else "native"
         nat = {}
         if na is not None:
             for field in ("title", "description", "objectives"):
                 nat[field] = normalize(na.get(field))
             for field in ("description", "objectives"):
                 before = nat[field]
+                nat[field] = fill_amounts(nat[field], amounts)
+                if MACRO.search(before) and not MACRO.search(nat[field]):
+                    filled.append(quest_id)
+                    continue
                 nat[field] = resolve_macros(nat[field], ml.get(field))
                 if MACRO.search(before):
                     if MACRO.search(nat[field]):
@@ -367,10 +482,15 @@ def assemble(classic, multilanguage, spoken, native):
 
         record = {"id": quest_id}
         sources = {}
+        del picked[:]
 
         def pick(field, candidates):
             for source, value in candidates:
                 if value:
+                    if amounts and MACRO.search(value):
+                        # The amounts Efficient Games lists for the quest's objectives.
+                        value = fill_amounts(value, amounts)
+                        filled.append(quest_id)
                     if UNKNOWN_NUMBER.search(value):
                         # Shown as X, the way the spell descriptions show an
                         # amount the API could not work out.
@@ -378,28 +498,36 @@ def assemble(classic, multilanguage, spoken, native):
                         masked.append(quest_id)
                     record[field] = value
                     sources[field] = source
-                    count(field, source)
+                    picked.append((field, source))
                     return
             record[field] = ""
 
-        pick("title", (("native", nat.get("title")), ("classic", cl.get("title")), ("multilanguage", ml.get("title")),
+        pick("title", ((label, nat.get("title")), ("classic", cl.get("title")), ("multilanguage", ml.get("title")),
                        ("spoken", sp.get("title"))))
         # A quest the client has no opening text for falls through to the older
         # sources; they have none either unless the game dropped it since.
-        pick("description", (("native", nat.get("description")), ("multilanguage", ml.get("description")),
+        pick("description", ((label, nat.get("description")), ("multilanguage", ml.get("description")),
                              ("spoken", sp.get("description")), ("classic", cl.get("description"))))
-        pick("objectives", (("native", nat.get("objectives")), ("classic", cl.get("objectives")),
+        pick("objectives", ((label, nat.get("objectives")), ("classic", cl.get("objectives")),
                             ("multilanguage", ml.get("objectives"))))
-        pick("progress", (("multilanguage", ml.get("progress")), ))
-        pick("completion", (("multilanguage", ml.get("completion")), ("spoken", sp.get("completion"))))
+        pick("progress", (("eg", normalize(eg.get("progress"))), ("multilanguage", ml.get("progress"))))
+        pick("completion", (("eg", normalize(eg.get("completion"))), ("multilanguage", ml.get("completion")),
+                            ("spoken", sp.get("completion"))))
         if sources.get("description") == "classic":
             # Every opening text in Data/Classic is a copy of the Retail quest's.
             record["descriptionSource"] = "retail"
         if not any(record.get(f) for f in ("title", "description", "objectives", "progress", "completion")):
             continue
+        if JUNK_TITLE.match(record["title"]) and not any(
+                record.get(f) for f in ("description", "objectives", "progress", "completion")):
+            continue
+        if DEVELOPER_TEXT.search(record["title"]):
+            continue
+        for field, source in picked:
+            count(field, source)
         record["from"] = sources
         records[quest_id] = record
-    return records, report, resolved, unresolved, len(masked)
+    return records, report, resolved, unresolved, len(masked), len(set(filled))
 
 
 def default_wdb():
@@ -419,7 +547,10 @@ def main():
                         help="MultiLanguage's Database/Quests/enUS.lua")
     parser.add_argument("--spoken", default=str(CACHE / "spoken"),
                         help="a folder holding Spoken's QuestText.lua and Compendium.lua (the Spoken_Quests addon's Data folder)")
-    parser.add_argument("--fetch", action="store_true", help="download the MultiLanguage and Spoken files if they are not there")
+    parser.add_argument("--eg", default=str(CACHE / "eg"),
+                        help="a folder holding Efficient Games' <product>/<build>/quests.enUS.json and texts.enUS.json")
+    parser.add_argument("--fetch", action="store_true",
+                        help="download the MultiLanguage, Spoken and Efficient Games files that are not there")
     parser.add_argument("--archive", default=str(CACHE / "native_enUS.jsonl"))
     parser.add_argument("--out", default=str(CACHE / "quests_enUS.jsonl"))
     args = parser.parse_args()
@@ -436,6 +567,11 @@ def main():
             sys.exit("%s lacks %s; download them with --fetch or point --spoken at the Spoken_Quests Data folder"
                      % (spoken_dir, " and ".join(SPOKEN_FILES)))
         fetch_spoken(spoken_dir)
+    eg_dir = pathlib.Path(args.eg)
+    if args.fetch:
+        fetch_eg(eg_dir)
+    elif not eg_files(eg_dir, "quests"):
+        sys.exit("%s holds no Efficient Games quest files; download them with --fetch" % eg_dir)
 
     archive = load_native_jsonl(args.archive)
     print("native archive: %d quests" % len(archive))
@@ -465,10 +601,16 @@ def main():
     classic = load_classic(args.classic)
     multilanguage = load_multilanguage(ml_path)
     spoken = load_spoken(spoken_dir)
-    print("classic: %d, multilanguage: %d, spoken: %d, native: %d"
-          % (len(classic), len(multilanguage), len(spoken), len(archive)))
+    eg_quests, eg_texts = load_eg(eg_dir)
+    # Both are the server's own answers. The client cache stays in the archive on
+    # its own; here the two are laid over each other, the newer build on top.
+    native = merge_native(dict(archive), eg_quests)
+    eg_amounts = {quest_id: entry["amounts"] for quest_id, entry in eg_quests.items() if any(entry["amounts"])}
+    print("classic: %d, multilanguage: %d, spoken: %d, efficient games: %d (+ %d with dialogue lines), client cache: %d"
+          % (len(classic), len(multilanguage), len(spoken), len(eg_quests), len(eg_texts), len(archive)))
 
-    records, report, resolved, unresolved, masked = assemble(classic, multilanguage, spoken, archive)
+    records, report, resolved, unresolved, masked, filled = assemble(
+        classic, multilanguage, spoken, native, eg_texts, eg_amounts)
     with open(args.out, "w", encoding="utf-8", newline="\n") as handle:
         for quest_id in sorted(records):
             handle.write(json.dumps(records[quest_id], ensure_ascii=False) + "\n")
@@ -481,8 +623,8 @@ def main():
     with_text = sum(1 for r in records.values() if r["description"])
     flagged = sum(1 for r in records.values() if r.get("descriptionSource"))
     print("  with a title: %d, with an opening text: %d (%d of them a Retail copy)" % (titled, with_text, flagged))
-    print("  objective amounts the game would fill in: %d written out from another source, %d unknown"
-          % (resolved, unresolved))
+    print("  objective amounts the game would fill in: %d quests written out from the quest's own objectives, "
+          "%d from another source's sentence, %d unknown" % (filled, resolved, unresolved))
     print("  texts with a number nobody has (shown as X): %d" % masked)
 
 
