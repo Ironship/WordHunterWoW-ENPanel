@@ -1,0 +1,8 @@
+## Interface: 16001
+## Title: QuestSweep (maintainer tool)
+## Notes: Asks the server about every quest id so the client caches the text of all of them. Not part of the English Quest Panel.
+## Author: Ironship
+## Version: 0.1.0
+## SavedVariables: QuestSweepDB
+
+QuestSweep.lua
