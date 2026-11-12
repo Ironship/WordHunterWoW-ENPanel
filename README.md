@@ -10,7 +10,7 @@ The quest you have open appears in English in its own window, next to the origin
 
 ## What you get
 
-- **English quest text** — 49,041 Retail quests and 4,244 Classic, title and description
+- **English quest text** — 49,141 Retail quests, 4,244 Classic and 5,285 for WoW: Forever, title and description
 - **English spell names** on tooltips — 11,038 spells, with 10,220 descriptions *(Retail only)*
 - **English NPC names** on tooltips — 13,500 creatures *(Retail only)*
 - **English item names** — a separate download, [English Item Names](https://github.com/Ironship/WordHunterWoW-ENPanel-Items), 168,833 items
@@ -31,10 +31,20 @@ wrong about is worse than no name at all. So the Classic Era build loads none
 of it, and these tooltips stay as the game draws them until the data has been
 read from a Classic client too.
 
+## On WoW: Forever
+
+5,285 quests, put together from what the Forever client itself received from the server, the Classic data,
+the Forever data of the MultiLanguage addon by Ruben Zantingh (used with his permission) and the quest data of
+the Spoken addon by Rusty Key (MIT). Most of them also carry the line the NPC says while the quest is in
+progress and the one at hand-in, so the panel shows the passage you are actually reading. The new quests that
+only Forever has are in as far as any source has their text; for the rest there is no English text yet, and
+the panel says so. A number the game works out from its own data tables is shown as **X**. `NOTICE` has the
+details and the licences.
+
 ## Install
 
-Unzip into `_retail_\Interface\AddOns\` — or `_classic_era_\Interface\AddOns\`
-— and restart the game.
+Unzip into `_retail_\Interface\AddOns\`, `_classic_era_\Interface\AddOns\` or
+`_forever_\Interface\AddOns\` and restart the game.
 
 Nothing else is required. If you also install [QuestWordHunter](https://github.com/Ironship/WordHunterWoW), the quest text becomes clickable so you can save words you want to learn, this panel docks beside it, and pointing at a word lights up the English sentence that says the same thing.
 
@@ -49,8 +59,9 @@ description, including six class talents; those tooltips receive a name only.
 
 Some quests have no English text for their progress or hand-in lines, because Blizzard does not publish it. The panel tells you when that happens instead of showing you the wrong passage.
 
-Retail 12.1 (interface 120100) and Classic Era 1.15.9 (11509) — one manifest
-each. What the Classic build does and does not carry is set out above.
+Retail 12.1 (interface 120100), Classic Era 1.15.9 (11509) and WoW: Forever
+(16001) — one manifest each. What the Classic build does and does not carry is
+set out above.
 
 ## Rebuild (maintainers)
 
@@ -77,6 +88,27 @@ status, leaving the cache available for another run.
 The Retail spell search includes IDs below 2,000,000. Use `--max-id` to extend
 that range when new spells exceed it; older imports stopped at 500,000 and
 missed the newer Rogue abilities entirely.
+
+## WoW: Forever
+
+The client keeps the text of every quest the server has told it about, the ones the player never took
+included, in `Cache\WDB\<locale>\questcache.wdb`. In an English client that is the game's own English.
+Blizzard's API has none of the new Forever quests, so this is where they come from.
+
+`Tools/QuestSweep` is a small addon for the maintainer: copy it into the AddOns folder, run an English
+client, `/qsweep start`, and it asks the server about every quest id, slowly, so the cache fills with all of
+them. Log out when it says it is done, then:
+
+```
+python Tools/build_forever_quests.py --fetch --wdb "<game>\_forever_\Cache\WDB\enUS\questcache.wdb"
+python Tools/build_quest_lua.py --cache Data/cache/forever/quests_enUS.jsonl --out Data/Forever --chunk 1000 --toc WordHunterWoW-ENPanel_Camelot.toc --flavor forever
+```
+
+The client's cache does not keep everything it has ever held, so every run adds what it reads to
+`Data/cache/forever/native_enUS.jsonl`, and the build reads from there. `--native-lua` takes an older capture
+kept as Lua (the German Dictionary's `QuestData/Data/forever/enUS_000.lua` is one). The MultiLanguage file is
+fetched at the revision named in `Tools/build_forever_quests.py`. The script's header says which source wins
+for which field.
 
 ## Classic Era and Season of Discovery
 
